@@ -1,10 +1,27 @@
 import torch
-from ..module import Module
+from ..module import ParametrizedModule, Linear
 
-class NodeUpdate(Module):
-    def __init__(self, in_features: int, out_features: int):
+class NodeUpdate(ParametrizedModule):
+    def __init__(self):
         super().__init__()
-        self.linear = torch.nn.Linear(in_features, out_features)
+        self.linear = Linear()
 
-    def forward(self, h, e, x):
-        h = self.linear(x)
+    def forward(self, v, e, x, config=None):
+        """
+        Examples
+        --------
+        >>> node_update = NodeUpdate()
+        >>> v = torch.zeros(2, 5)
+        >>> e = torch.zeros(3, 4)
+        >>> x = torch.zeros(2, 3, 6)
+        >>> config = node_update.Config(10)
+        >>> v1, e1, x1 = node_update(v, e, x, config=config)
+        >>> list(v1.shape)
+        [2, 10]
+        >>> assert torch.isclose(e1, e)
+        >>> assert torch.isclose(x1, x)
+        """
+        if config is None:
+            config = self.sample()
+        v = self.linear(v, config=config)
+        return v, e, x
