@@ -10,16 +10,16 @@ class EdgeUpdate(ParametrizedModule):
         """
         Examples
         --------
-        >>> node_update = EdgeUpdate()
+        >>> edge_update = EdgeUpdate()
         >>> v = torch.zeros(2, 5)
         >>> e = torch.zeros(3, 4)
         >>> x = torch.zeros(2, 3, 6)
-        >>> config = node_update.Config(10)
-        >>> v1, e1, x1 = node_update(v, e, x, config=config)
+        >>> config = edge_update.Config(10)
+        >>> v1, e1, x1 = edge_update(v, e, x, config=config)
         >>> list(e1.shape)
         [3, 10]
-        >>> assert torch.isclose(v1, v)
-        >>> assert torch.isclose(x1, x)
+        >>> assert torch.isclose(v1, v).all()
+        >>> assert torch.isclose(x1, x).all()
         """
         if config is None:
             config = self.sample()

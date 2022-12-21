@@ -18,8 +18,8 @@ class NodeUpdate(ParametrizedModule):
         >>> v1, e1, x1 = node_update(v, e, x, config=config)
         >>> list(v1.shape)
         [2, 10]
-        >>> assert torch.isclose(e1, e)
-        >>> assert torch.isclose(x1, x)
+        >>> assert torch.isclose(e1, e).all()
+        >>> assert torch.isclose(x1, x).all()
         """
         if config is None:
             config = self.sample()
