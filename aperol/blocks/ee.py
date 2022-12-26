@@ -1,7 +1,8 @@
+"""Edge modules. """
 import torch
-from ..module import ParametrizedModule, Linear
+from ..module import Module, Linear
 
-class EdgeUpdate(ParametrizedModule):
+class EdgeUpdate(Module):
     def __init__(self):
         super().__init__()
         self.linear = Linear()

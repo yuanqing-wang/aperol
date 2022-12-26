@@ -1,7 +1,8 @@
+"""Identity module. """
 import torch
 from ..module import Module
 
-class Skip(Module):
+class Identity(Module):
     def forward(
             self,
             v: torch.Tensor,

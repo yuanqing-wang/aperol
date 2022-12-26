@@ -4,6 +4,13 @@ from collections import namedtuple
 import torch
 from .constants import MAX_IN, MAX_OUT, MIN_IN, MIN_OUT, ACTIVATION
 
+def config(self, fields):
+    return namedtuple(
+        self.__class__.__name__,
+        fields + ["cls"],
+        defaults=(None,) * len(fields) + (self.__class__,),
+    )
+
 class Module(torch.nn.Module):
     """Base module for `aperol` building blocks. """
     def __init__(self, *args, **kwargs):
@@ -46,53 +53,17 @@ class Module(torch.nn.Module):
             config = self.sample()
 
     @property
-    @abc.abstractmethod
-    def Config(self):
-        """Factory to generate configs."""
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def sample(self) -> NamedTuple:
-        """Sample a configuration."""
-        raise NotImplementedError
-
-class ParametrizedModule(Module):
-    """Base module with weight and bias parameters."""
-    def __init__(
-            self,
-            max_in: int = MAX_IN,
-            max_out: int = MAX_OUT,
-            min_in: int = MIN_IN,
-            min_out: int = MIN_OUT,
-            activation: Callable = ACTIVATION,
-        ):
-        super().__init__()
-        self.max_in = max_in
-        self.max_out = max_out
-        self.min_in = min_in
-        self.min_out = min_out
-        self.activation = activation
-        self.W = torch.nn.Parameter(torch.Tensor(max_in, max_out))
-        self.B = torch.nn.Parameter(torch.Tensor(max_out))
-        self.initialize()
-
-    def initialize(self):
-        """Initialize weight and bias. """
-        torch.nn.init.xavier_uniform_(self.W)
-        torch.nn.init.zeros_(self.B)
-
-    @property
     def Config(self):
         """
         Examples
         --------
-        >>> parametrized_module = ParametrizedModule()
+        >>> parametrized_module = Module()
         >>> config = parametrized_module.Config(5)
         >>> config.out_features
         5
         """
 
-        return namedtuple("Config", ["out_features"])
+        return config(self, ["out_features"])
 
     def sample(self):
         return self.Config(
@@ -100,6 +71,36 @@ class ParametrizedModule(Module):
                 low=self.min_out, high=self.max_out, size=(),
             ),
         )
+
+class Linear(Module):
+    def __init__(
+            self,
+            max_in: int = MAX_IN,
+            max_out: int = MAX_OUT,
+            min_in: int = MIN_IN,
+            min_out: int = MIN_OUT,
+            activation: Optional[Callable] = ACTIVATION,
+            bias: bool = True,
+        ):
+        super().__init__()
+        if activation is None:
+            activation = lambda x: x
+        self.max_in = max_in
+        self.max_out = max_out
+        self.min_in = min_in
+        self.min_out = min_out
+        self.activation = activation
+        self.bias = bias
+        self.W = torch.nn.Parameter(torch.Tensor(max_in, max_out))
+        if bias:
+            self.B = torch.nn.Parameter(torch.Tensor(max_out))
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        """Initialize weight and bias. """
+        torch.nn.init.xavier_uniform_(self.W)
+        if self.bias:
+            torch.nn.init.zeros_(self.B)
 
     def slice(
             self, in_features: int, out_features: int,
@@ -116,7 +117,7 @@ class ParametrizedModule(Module):
 
         Examples
         --------
-        >>> parametrized_module = ParametrizedModule()
+        >>> parametrized_module = Module()
         >>> W, B = parametrized_module.slice(2666, 1984)
         Traceback (most recent call last):
         ...
@@ -133,25 +134,11 @@ class ParametrizedModule(Module):
         in_idxs = torch.randint(high=self.max_in, size=(in_features,))
         out_idxs = torch.randint(high=self.max_out, size=(out_features,))
         W = self.W.index_select(0, in_idxs).index_select(1, out_idxs)
-        B = self.B.index_select(0, out_idxs)
+        if self.bias:
+            B = self.B.index_select(0, out_idxs)
+        else:
+            B = 0.0
         return W, B
-
-class Linear(ParametrizedModule):
-    def __init__(
-            self,
-            max_in: int = MAX_IN,
-            max_out: int = MAX_OUT,
-            min_in: int = MIN_IN,
-            min_out: int = MIN_OUT,
-            activation: Callable = ACTIVATION,
-        ):
-        super().__init__(
-            max_in=max_in,
-            max_out=max_out,
-            min_in=min_in,
-            min_out=min_out,
-            activation=activation,
-        )
 
     def forward(self, h, config=None):
         if config is None:

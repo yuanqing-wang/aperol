@@ -1,13 +1,17 @@
+"""General aggregation methods. """
 from functools import partial
 import torch
-from ..module import Module, ParametrizedModule, Linear
+from ..module import Module, Linear
 
-class Aggregation(ParametrizedModule):
+class Aggregation(Module):
     def __init__(self, aggregator, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.aggregator = aggregator
         self.linear_x = Linear()
         self.linear_y = Linear()
+
+    def sample(self):
+        return self.linear_x.sample()._replace(cls=self.__class__)
 
     def forward(self, x, y, config=None):
         """Aggregates y onto x and transform.
@@ -32,12 +36,16 @@ class Aggregation(ParametrizedModule):
 MeanAggregation = partial(Aggregation, torch.mean)
 SumAggregation = partial(Aggregation, torch.sum)
 
-class DotAttentionAggregation(ParametrizedModule):
+class DotAttentionAggregation(Module):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.linear_k = Linear()
         self.linear_q = Linear()
         self.linear_v = Linear()
+        self.linear = Linear()
+
+    def sample(self):
+        return self.linear.sample()._replace(cls=self.__class__)
 
     def forward(self, x, y, config=None):
         """Aggregates y onto x with dot product attention.
@@ -55,6 +63,7 @@ class DotAttentionAggregation(ParametrizedModule):
             config = self.sample()
         k = self.linear_k(x, config=config)
         q = self.linear_q(y, config=config)
-        x = (k @ q.t()).softmax(-1) @ y # x, y
-        x = self.linear_v(x)
-        return x
+        y= (k @ q.t()).softmax(-1) @ y # x, y
+        y = self.linear_v(y, config=config)
+        x = self.linear(x, config=config)
+        return x + y

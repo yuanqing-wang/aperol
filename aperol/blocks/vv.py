@@ -1,7 +1,8 @@
+"""Node modules. """
 import torch
-from ..module import ParametrizedModule, Linear
+from ..module import Module, Linear
 
-class NodeUpdate(ParametrizedModule):
+class NodeUpdate(Module):
     def __init__(self):
         super().__init__()
         self.linear = Linear()

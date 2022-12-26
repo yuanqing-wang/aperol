@@ -1,9 +1,11 @@
+"""Geometry modules. """
 import torch
-from ..module import ParametrizedModule
+from ..module import Module, Linear
 
-class GeometryUpdate(ParametrizedModule):
+class GeometryUpdate(Module):
     def __init__(self):
         super().__init__()
+        self.linear = Linear(activation=None, bias=False)
 
     def forward(self, v, e, x, config=None):
         """
@@ -22,8 +24,5 @@ class GeometryUpdate(ParametrizedModule):
         """
         if config is None:
             config = self.sample()
-        in_features = x.shape[-1]
-        out_features = config.out_features
-        W, _ = self.slice(in_features, out_features)
-        x = x @ W
+        x = self.linear(x, config=config)
         return v, e, x
