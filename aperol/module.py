@@ -136,16 +136,6 @@ class ParametrizedModule(Module):
         B = self.B.index_select(0, out_idxs)
         return W, B
 
-class Skip(Module):
-    def forward(
-            self,
-            v: torch.Tensor,
-            e: torch.Tensor,
-            x: torch.Tensor,
-            *args, **kwargs,
-        ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        return v, e, x
-
 class Linear(ParametrizedModule):
     def __init__(
             self,
