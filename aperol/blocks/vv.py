@@ -13,7 +13,7 @@ class NodeUpdate(Module):
         --------
         >>> node_update = NodeUpdate()
         >>> v = torch.zeros(2, 5)
-        >>> e = torch.zeros(3, 4)
+        >>> e = torch.zeros(4, 4, 8)
         >>> x = torch.zeros(2, 3, 6)
         >>> config = node_update.Config(10)
         >>> v1, e1, x1 = node_update(v, e, x, config=config)
