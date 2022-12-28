@@ -23,11 +23,11 @@ class EdgeToNodeAggregation(Module):
         >>> import torch
         >>> edge_to_node_aggregation = EdgeToNodeAggregation()
         >>> v = torch.zeros(2, 5)
-        >>> e = torch.zeros(3, 4)
+        >>> e = torch.zeros(2, 2, 4)
         >>> x = torch.zeros(2, 3, 6)
         >>> v, e, x = edge_to_node_aggregation(v, e, x)
         >>> v.shape[0], e.shape[0], x.shape[0]
-        (2, 3, 2)
+        (2, 2, 2)
         """
         v = self.aggregator(v, e)
         return v, e, x

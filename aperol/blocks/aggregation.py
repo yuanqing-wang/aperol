@@ -19,7 +19,7 @@ class Aggregation(Module):
         Examples
         --------
         >>> x = torch.zeros(5, 3)
-        >>> y = torch.ones(4, 2)
+        >>> y = torch.ones(5, 5, 2)
         >>> aggregation = Aggregation(torch.sum)
         >>> z = aggregation(x, y)
         >>> z.shape[0]
@@ -27,7 +27,7 @@ class Aggregation(Module):
         """
         if config is None:
             config = self.sample()
-        y = self.aggregator(y, dim=0, keepdims=True)
+        y = self.aggregator(y, dim=0)
         y = self.linear_y(y, config=config)
         x = self.linear_x(x, config=config)
         return x + y
