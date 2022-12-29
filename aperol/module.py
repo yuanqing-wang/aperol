@@ -147,3 +147,11 @@ class Linear(Module):
         out_features = config.out_features
         W, B = self.slice(in_features, out_features)
         return self.activation(h @ W + B)
+
+class BlockModule(Module):
+    """Final modules used as building blocks. """
+    def __init__(self):
+        super().__init__()
+
+    def serve(self, config):
+        raise NotImplementedError
