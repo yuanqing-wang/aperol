@@ -2,7 +2,7 @@
 from typing import Callable, NamedTuple, Optional
 import torch
 import math
-from ..module import Module, Linear
+from ..module import BlockModule, Linear
 from ..constants import NUM_BASIS, CUTOFF_LOWER, CUTOFF_UPPER
 
 def get_delta_x(x):
@@ -145,7 +145,7 @@ def erbf(x, num_basis=NUM_BASIS, lower=0.0, upper=5.0):
         -betas * (torch.exp(alpha * (-x + lower)) - means) ** 2
     )
 
-class Smearing(Module):
+class Smearing(BlockModule):
     """Smear the distance into multi-dimensional vectors. """
     def __init__(self, kernel: Callable = rbf):
         super().__init__()
@@ -205,7 +205,7 @@ class Smearing(Module):
 
         return v, e, x
 
-class SpatialAttention(Module):
+class SpatialAttention(BlockModule):
     """Spatial attention module. """
     def __init__(self):
         super().__init__()

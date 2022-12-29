@@ -1,10 +1,10 @@
 """Node to geometry modules. """
 
 import torch
-from ..module import Module, Linear
+from ..module import BlockModule, Linear
 from ..constants import MAX_OUT
 
-class Damping(Module):
+class Damping(BlockModule):
     """Damp geometry based on node embedding. """
     def __init__(self):
         super().__init__()

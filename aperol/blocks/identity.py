@@ -1,8 +1,8 @@
 """Identity module. """
 import torch
-from ..module import Module
+from ..module import BlockModule
 
-class Identity(Module):
+class Identity(BlockModule):
     def forward(
             self,
             v: torch.Tensor,

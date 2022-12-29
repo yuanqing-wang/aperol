@@ -1,9 +1,9 @@
 """Geometry modules. """
 import torch
-from ..module import Module, Linear
+from ..module import BlockModule, Linear
 from ..constants import MAX_IN, MAX_OUT
 
-class GeometryUpdate(Module):
+class GeometryUpdate(BlockModule):
     def __init__(self):
         super().__init__()
         self.linear = Linear(
@@ -33,7 +33,7 @@ class GeometryUpdate(Module):
         x = torch.cat([x0, x1], dim=-1)
         return v, e, x
 
-class GeometryReduce(Module):
+class GeometryReduce(BlockModule):
     def __init__(self):
         super().__init__()
         self.linear = Linear(

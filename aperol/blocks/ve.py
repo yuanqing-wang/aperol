@@ -1,12 +1,12 @@
 """Node to edge modules. """
 from typing import Optional
 from functools import partial
-from ..module import Module
+from ..module import BlockModule
 from .aggregation import (
     MeanAggregation, SumAggregation, DotAttentionAggregation,
 )
 
-class NodeToEdgeAggregation(Module):
+class NodeToEdgeAggregation(BlockModule):
     """Aggregate from edge to node. """
     def __init__(self, aggregator: Optional[type] = MeanAggregation):
         super().__init__()

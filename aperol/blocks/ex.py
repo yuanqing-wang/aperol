@@ -1,10 +1,10 @@
 """Edge to geometry modules. """
 
-from ..module import Module, Linear
+from ..module import Module, Linear, BlockModule
 from .xe import get_delta_x
 import torch
 
-class EdgeToGeometryUpdate(Module):
+class EdgeToGeometryUpdate(BlockModule):
     """Update from edge to geometry. """
     def __init__(self):
         super().__init__()

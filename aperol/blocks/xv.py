@@ -1,9 +1,9 @@
 """Geometry to node modules. """
 
 import torch
-from ..module import Module, Linear
+from ..module import BlockModule, Linear
 
-class DotProductReduce(Module):
+class DotProductReduce(BlockModule):
     def __init__(self):
         super().__init__()
         self.linear_k = Linear(activation=None, bias=False)
