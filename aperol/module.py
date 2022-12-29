@@ -68,7 +68,7 @@ class Module(torch.nn.Module):
     def sample(self):
         return self.Config(
             out_features=torch.randint(
-                low=self.min_out, high=self.max_out, size=(),
+                low=MIN_OUT, high=MAX_OUT, size=(),
             ),
         )
 
@@ -148,7 +148,7 @@ class Linear(Module):
         W, B = self.slice(in_features, out_features)
         return self.activation(h @ W + B)
 
-class BlockModule(Module):
+class Block(Module):
     """Final modules used as building blocks. """
     def __init__(self):
         super().__init__()

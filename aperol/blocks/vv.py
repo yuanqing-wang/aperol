@@ -1,8 +1,10 @@
 """Node modules. """
 import torch
-from ..module import BlockModule, Linear
+from ..module import Block, Linear
 
-class NodeUpdate(BlockModule):
+__all__ = ["NodeUpdate"]
+
+class NodeUpdate(Block):
     def __init__(self):
         super().__init__()
         self.linear = Linear()

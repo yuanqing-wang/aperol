@@ -1,16 +1,18 @@
 """Node to geometry modules. """
 
 import torch
-from ..module import BlockModule, Linear
+from ..module import Block, Linear
 from ..constants import MAX_OUT
 
-class Damping(BlockModule):
+__all__ = ["Damping"]
+
+class Damping(Block):
     """Damp geometry based on node embedding. """
     def __init__(self):
         super().__init__()
         self.linear_x = Linear(bias=False, activation=None, max_out=MAX_OUT-1)
         self.linear_v = Linear(
-            bias=False, activation=torch.nn.SoftPlus(),
+            bias=False, activation=torch.nn.Softplus(),
             max_out=MAX_OUT - 1,
         )
 

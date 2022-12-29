@@ -1,13 +1,19 @@
 """Edge to node modules. """
 from typing import Optional
-from functools import partial
-from ..module import Module, BlockModule
+from functools import partialmethod
+from ..module import Module, Block
 from .aggregation import (
     MeanAggregation, SumAggregation, DotAttentionAggregation,
 )
 from .xe import get_distance, cosine_cutoff
 
-class EdgeToNodeAggregation(BlockModule):
+__all__ = [
+    "MeanEdgeToNodeAggregation",
+    "SumEdgeToNodeAggregation",
+    "DotAttentionEdgeToNodeAggregation",
+]
+
+class EdgeToNodeAggregation(Block):
     """Aggregate from edge to node. """
     def __init__(self, aggregator: Optional[type] = MeanAggregation):
         super().__init__()
@@ -34,8 +40,11 @@ class EdgeToNodeAggregation(BlockModule):
         v = self.aggregator(v, cutoff * e)
         return v, e, x
 
-MeanEdgeToNodeAggregation = partial(EdgeToNodeAggregation, MeanAggregation)
-SumEdgeToNodeAggregation = partial(EdgeToNodeAggregation, SumAggregation)
-DotAttentionEdgeToNodeAggregation = partial(
-    EdgeToNodeAggregation, DotAttentionAggregation
-)
+class MeanEdgeToNodeAggregation(EdgeToNodeAggregation):
+    __init__ = partialmethod(EdgeToNodeAggregation.__init__, MeanAggregation)
+
+class SumEdgeToNodeAggregation(EdgeToNodeAggregation):
+    __init__ = partialmethod(EdgeToNodeAggregation.__init__, SumAggregation)
+
+class DotAttentionEdgeToNodeAggregation(EdgeToNodeAggregation):
+    __init__ = partialmethod(EdgeToNodeAggregation.__init__, DotAttentionAggregation)

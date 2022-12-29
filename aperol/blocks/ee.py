@@ -1,11 +1,16 @@
 """Edge modules. """
 import torch
-from ..module import Module, Linear, BlockModule
+from ..module import Module, Linear, Block
 
-class EdgeUpdate(BlockModule):
+__all__ = ["EdgeUpdate"]
+
+class EdgeUpdate(Block):
     def __init__(self):
         super().__init__()
         self.linear = Linear()
+
+    def sample(self):
+        return self.linear.sample()._replace(cls=self.__class__)
 
     def forward(self, v, e, x, config=None):
         """

@@ -1,9 +1,12 @@
 """Geometry to edge modules. """
+from functools import partialmethod
 from typing import Callable, NamedTuple, Optional
 import torch
 import math
-from ..module import BlockModule, Linear
+from ..module import Block, Linear
 from ..constants import NUM_BASIS, CUTOFF_LOWER, CUTOFF_UPPER
+
+__all__ = ["RBFSmearing", "ERBFSmearing", "SpatialAttention"]
 
 def get_delta_x(x):
     """Compute the vector difference among geometry.
@@ -145,7 +148,7 @@ def erbf(x, num_basis=NUM_BASIS, lower=0.0, upper=5.0):
         -betas * (torch.exp(alpha * (-x + lower)) - means) ** 2
     )
 
-class Smearing(BlockModule):
+class Smearing(Block):
     """Smear the distance into multi-dimensional vectors. """
     def __init__(self, kernel: Callable = rbf):
         super().__init__()
@@ -161,7 +164,7 @@ class Smearing(BlockModule):
         self.linear = Linear()
 
     def sample(self):
-        return self.linear.sample()
+        return self.linear.sample()._replace(cls=self.__class__)
 
     def forward(
             self, v: torch.Tensor, e: torch.Tensor, x: torch.Tensor,
@@ -205,7 +208,13 @@ class Smearing(BlockModule):
 
         return v, e, x
 
-class SpatialAttention(BlockModule):
+class RBFSmearing(Smearing):
+    __init__ = partialmethod(Smearing.__init__, rbf)
+
+class ERBFSmearing(Smearing):
+    __init__ = partialmethod(Smearing.__init__, erbf)
+
+class SpatialAttention(Block):
     """Spatial attention module. """
     def __init__(self):
         super().__init__()
