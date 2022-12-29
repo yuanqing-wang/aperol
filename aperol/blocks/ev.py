@@ -5,6 +5,7 @@ from ..module import Module
 from .aggregation import (
     MeanAggregation, SumAggregation, DotAttentionAggregation,
 )
+from .xe import get_distance, cosine_cutoff
 
 class EdgeToNodeAggregation(Module):
     """Aggregate from edge to node. """
@@ -13,7 +14,7 @@ class EdgeToNodeAggregation(Module):
         self.aggregator = aggregator()
 
     def sample(self):
-        return self.aggregator.sample()
+        return self.aggregator.sample()._replace(cls=self.__class__)
 
     def forward(self, v, e, x, config=None):
         """
@@ -29,7 +30,8 @@ class EdgeToNodeAggregation(Module):
         >>> v.shape[0], e.shape[0], x.shape[0]
         (2, 2, 2)
         """
-        v = self.aggregator(v, e)
+        cutoff = cosine_cutoff(get_distance(x)).mean(-1, keepdims=True)
+        v = self.aggregator(v, cutoff * e)
         return v, e, x
 
 MeanEdgeToNodeAggregation = partial(EdgeToNodeAggregation, MeanAggregation)

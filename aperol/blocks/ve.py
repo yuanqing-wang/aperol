@@ -13,7 +13,7 @@ class NodeToEdgeAggregation(Module):
         self.aggregator = aggregator()
 
     def sample(self):
-        return self.aggregator.sample()
+        return self.aggregator.sample()._replace(cls=self.__class__)
 
     def forward(self, v, e, x, config=None):
         """
