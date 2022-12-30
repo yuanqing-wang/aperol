@@ -36,8 +36,10 @@ class EdgeToNodeAggregation(Block):
         >>> v.shape[0], e.shape[0], x.shape[0]
         (2, 2, 2)
         """
-        cutoff = cosine_cutoff(get_distance(x)).mean(-1, keepdims=True)
-        v = self.aggregator(v, cutoff * e)
+        if config is None:
+            config = self.sample()
+        cutoff = cosine_cutoff(get_distance(x[..., 0]))
+        v = self.aggregator(v, cutoff * e, config=config)
         return v, e, x
 
 class MeanEdgeToNodeAggregation(EdgeToNodeAggregation):

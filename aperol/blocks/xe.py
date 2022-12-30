@@ -243,10 +243,10 @@ class SpatialAttention(Block):
         if config is None:
             config = self.sample()
 
-        x_k = self.linear_k(x, config=config)
-        x_q = self.linear_q(x, config=config)
+        x_k = self.linear_k(x[..., 1:], config=config)
+        x_q = self.linear_q(x[..., 1:], config=config)
         a = torch.linalg.norm(x_k.unsqueeze(0) - x_q.unsqueeze(1), dim=2)
         a = self.linear_summarize(a, config=config)
         e = self.linear(e, config=config)
         e = a + e
-        return x, e, v
+        return v, e, x

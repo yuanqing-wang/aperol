@@ -35,7 +35,7 @@ class NodeToEdgeAggregation(Block):
         >>> v.shape[0], e.shape[0], x.shape[0]
         (2, 2, 2)
         """
-        e = self.aggregator(e, v.unsqueeze(0))
+        e = self.aggregator(e, v.unsqueeze(0), config=config)
         return v, e, x
 
 class MeanNodeToEdgeAggregation(NodeToEdgeAggregation):

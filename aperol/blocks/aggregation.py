@@ -27,7 +27,7 @@ class Aggregation(Module):
         """
         if config is None:
             config = self.sample()
-        y = self.aggregator(y, dim=0)
+        y = self.aggregator(y, dim=-2)
         y = self.linear_y(y, config=config)
         x = self.linear_x(x, config=config)
         return x + y
@@ -63,7 +63,7 @@ class DotAttentionAggregation(Module):
             config = self.sample()
         k = self.linear_k(x, config=config)
         q = self.linear_q(y, config=config)
-        y= (k @ q.swapaxes(-1, -2)).softmax(-1) @ y # x, y
-        y = self.linear_v(y, config=config)
+        y = (k @ q.swapaxes(-1, -2)).softmax(-1) @ y # x, y
+        y = self.linear_v(y, config=config).sum(-2)
         x = self.linear(x, config=config)
         return x + y

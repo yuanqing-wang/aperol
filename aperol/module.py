@@ -131,11 +131,9 @@ class Linear(Module):
         """
         assert in_features <= self.max_in
         assert out_features <= self.max_out
-        in_idxs = torch.randint(high=self.max_in, size=(in_features,))
-        out_idxs = torch.randint(high=self.max_out, size=(out_features,))
-        W = self.W.index_select(0, in_idxs).index_select(1, out_idxs)
+        W = self.W[:in_features, :out_features]
         if self.bias:
-            B = self.B.index_select(0, out_idxs)
+            B = self.B[:out_features]
         else:
             B = 0.0
         return W, B
@@ -150,6 +148,8 @@ class Linear(Module):
 
 class Block(Module):
     """Final modules used as building blocks. """
+
+    serving = False
     def __init__(self):
         super().__init__()
 
