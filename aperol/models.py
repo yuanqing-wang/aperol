@@ -3,7 +3,7 @@
 import torch
 from .module import Module
 from . import blocks
-from .constants import MAX_DEPTH
+from .constants import MAX_DEPTH, MAX_IN
 
 class SuperLayer(Module):
     """SuperLayer consisting of all possible blocks. """
@@ -46,5 +46,8 @@ class SuperModel(Module):
             *[SuperLayer() for _ in range(depth)]
         )
 
-    def forward(self, v, e, x, config=None):
+    def forward(self, v, x, config=None):
+        x_aux = torch.zeros(*x.shape[:-1], MAX_IN - 1)
+        x = torch.cat([x, x_aux], dim=-1)
+
         return self.layers(v, e, x, config=config)

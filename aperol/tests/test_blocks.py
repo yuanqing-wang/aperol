@@ -21,21 +21,21 @@ def test_equivariance(Block, *args):
     v1, e1, x1 = block(v0, e0, x0, config=config)
     translation, rotation, reflection = get_translation_rotation_reflection()
 
-    # test translation
-    x0_translation = translation(x0)
-    v1_translation, e1_translation, x1_translation = block(
-        v0, e0, x0_translation, config=config
-    )
-
-    if Block.__name__ != "DotProductReduce":
-        assert torch.allclose(v1_translation, v1, atol=1e-3, rtol=1e-3)
-    if Block.__name__ != "SpatialAttention":
-        assert torch.allclose(e1_translation, e1, atol=1e-3, rtol=1e-3)
-    if Block.__name__ != "GeometryReduce":
-        assert torch.allclose(
-            x1_translation[..., 0], translation(x1)[..., 0],
-            atol=1e-3, rtol=1e-3
-        )
+    # # test translation
+    # x0_translation = translation(x0)
+    # v1_translation, e1_translation, x1_translation = block(
+    #     v0, e0, x0_translation, config=config
+    # )
+    #
+    # if Block.__name__ != "DotProductReduce":
+    #     assert torch.allclose(v1_translation, v1, atol=1e-3, rtol=1e-3)
+    # if Block.__name__ != "SpatialAttention":
+    #     assert torch.allclose(e1_translation, e1, atol=1e-3, rtol=1e-3)
+    # if Block.__name__ != "GeometryReduce":
+    #     assert torch.allclose(
+    #         x1_translation[..., 0], translation(x1)[..., 0],
+    #         atol=1e-3, rtol=1e-3
+    #     )
 
     x0_rotation = rotation(x0)
     v1_rotation, e1_rotation, x1_rotation = block(

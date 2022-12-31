@@ -38,7 +38,7 @@ class DotProductReduce(Block):
         q = self.linear_q(x_eq, config=config)
 
         # (N, D)
-        kq = torch.einsum("abc, adc -> ac", k, q)
+        kq = (k * q).sum(-2)
         kq = self.linear_summarize(kq, config=config)
 
         # (N, D)
