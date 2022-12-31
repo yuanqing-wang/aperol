@@ -3,6 +3,7 @@
 import torch
 from .module import Module
 from . import blocks
+from .constants import MAX_DEPTH
 
 class SuperLayer(Module):
     """SuperLayer consisting of all possible blocks. """
@@ -12,9 +13,6 @@ class SuperLayer(Module):
             {name: block() for name, block in blocks.all_blocks.items()}
         )
         self.keys = blocks.__all__
-
-        # print(self.all_blocks)
-        # print(self.keys)
 
     def sample(self):
         idx = torch.randint(high=len(self.all_blocks)-1, size=()).item()
@@ -39,3 +37,14 @@ class SuperLayer(Module):
         block = self.all_blocks[config.cls.__name__]
         v, e, x = block(v, e, x)
         return v, e, x
+
+class SuperModel(Module):
+    """SuperModel consisting of SuperLayer. """
+    def __init__(self, depth=MAX_DEPTH):
+        super().__init__()
+        self.layers = torch.nn.Sequential(
+            *[SuperLayer() for _ in range(depth)]
+        )
+
+    def forward(self, v, e, x, config=None):
+        return self.layers(v, e, x, config=config)
