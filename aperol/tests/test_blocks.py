@@ -47,7 +47,7 @@ def test_equivariance(Block, *args):
 
     x0_reflection = reflection(x0)
     v1_reflection, e1_reflection, x1_reflection = block(
-        v0, e0, x0_rotation, config=config,
+        v0, e0, x0_reflection, config=config,
     )
     assert torch.allclose(v1_reflection, v1, atol=1e-3, rtol=1e-3)
     assert torch.allclose(e1_reflection, e1, atol=1e-3, rtol=1e-3)
