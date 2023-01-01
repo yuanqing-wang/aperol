@@ -49,5 +49,5 @@ class SuperModel(Module):
     def forward(self, v, x, config=None):
         x_aux = torch.zeros(*x.shape[:-1], MAX_IN - 1)
         x = torch.cat([x, x_aux], dim=-1)
-
-        return self.layers(v, e, x, config=config)
+        v, e, x = self.layers(v, e, x, config=config)
+        return v, x
