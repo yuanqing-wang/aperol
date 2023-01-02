@@ -29,8 +29,8 @@ class EdgeToGeometryUpdate(Block):
         >>> v1, e1, x1 = edge_to_geometry_update(v, e, x, config=config)
         """
         config = self.linear.Config(x.shape[-1])
-        delta_x = get_delta_x(x)
+        delta_x = x.unsqueeze(-3) - x.unsqueeze(-4)
         delta_x = self.linear(e, config=config).unsqueeze(-2) * delta_x
-        delta_x = delta_x.mean(0)
+        delta_x = delta_x.mean(-3)
         x = delta_x + x
         return v, e, x

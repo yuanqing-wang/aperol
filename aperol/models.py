@@ -1,7 +1,7 @@
 """Superlayer implementation. """
 
 import torch
-from .module import Module
+from .module import Module, Linear
 from . import blocks
 from .constants import MAX_DEPTH, MAX_IN
 
@@ -40,16 +40,24 @@ class SuperLayer(Module):
 
 class SuperModel(Module):
     """SuperModel consisting of SuperLayer. """
-    def __init__(self, depth=MAX_DEPTH):
+    def __init__(self, in_features: int, out_features: int, depth=MAX_DEPTH):
         super().__init__()
         self.layers = torch.nn.ModuleList(
             [SuperLayer() for _ in range(depth)]
         )
+        self.embedding_in = torch.nn.Linear(in_features, MAX_IN)
+        self.edge_left = torch.nn.Linear(in_features, MAX_IN)
+        self.edge_right = torch.nn.Linear(in_features, MAX_IN)
+        self.embedding_out = Linear(max_out=out_features)
+
 
     def forward(self, v, x, config=None):
+        x = x.unsqueeze(-1)
         x_aux = torch.zeros(*x.shape[:-1], MAX_IN - 1)
         x = torch.cat([x, x_aux], dim=-1)
-        e = x.unsqueeze(-2) + x.unsqueeze(-3)
+        e = self.edge_left(v.unsqueeze(-2)) + self.edge_right(v.unsqueeze(-3))
         for layer in self.layers:
             v, e, x = layer(v, e, x)
+        config = self.embedding_out.Config(self.embedding_out.max_out)
+        v = self.embedding_out(v, config=config)
         return v, x

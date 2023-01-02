@@ -28,7 +28,7 @@ def get_delta_x(x):
     >>> delta_x.shape
     torch.Size([5, 5, 3])
     """
-    return x.unsqueeze(0) - x.unsqueeze(1)
+    return x.unsqueeze(-2) - x.unsqueeze(-3)
 
 def get_distance(x):
     """Compute the distance among geometry.
@@ -51,7 +51,8 @@ def get_distance(x):
     torch.Size([5, 5, 1])
     """
     delta_x = get_delta_x(x)
-    return torch.linalg.norm(delta_x, dim=2, keepdims=True)
+    norm = torch.linalg.norm(delta_x, dim=-1, keepdims=True)
+    return norm
 
 def cosine_cutoff(x, lower=CUTOFF_LOWER, upper=CUTOFF_UPPER):
     """Cosine cutoff.

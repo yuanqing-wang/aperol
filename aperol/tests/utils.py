@@ -3,6 +3,7 @@ import torch
 from aperol.constants import MAX_IN, MAX_OUT, MIN_IN, MIN_OUT
 MIN_N_NODES = 2
 MAX_N_NODES = 32
+BATCH_SIZE = 64
 
 def get_inputs():
     n = torch.randint(low=MIN_N_NODES, high=MAX_N_NODES, size=()).item()
@@ -10,9 +11,9 @@ def get_inputs():
     ce = torch.randint(low=MIN_IN, high=MAX_IN, size=()).item()
     cx = torch.randint(low=MIN_IN, high=MAX_IN, size=()).item()
 
-    v = torch.randn(n, cv)
-    e = torch.randn(n, n, ce)
-    x = torch.randn(n, 3, cx)
+    v = torch.randn(BATCH_SIZE, n, cv)
+    e = torch.randn(BATCH_SIZE, n, n, ce)
+    x = torch.randn(BATCH_SIZE, n, 3, cx)
     return v, e, x
 
 def assert_number_of_dimensions_consistent(v0, e0, x0, v1, e1, x1):

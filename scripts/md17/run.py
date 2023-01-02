@@ -22,7 +22,6 @@ def run(args):
     e_mean = e.mean()
     e_std = e.std()
 
-    model = SuperModel()
     n_tr = args.n_tr
     n_vl = args.n_vl
     batch_size = args.batch_size
@@ -60,6 +59,8 @@ def run(args):
         e_te = e_te.cuda()
         f_te = f_te.cuda()
         i = i.cuda()
+
+    model = SuperModel(i.shape[-1], 1)
 
     x_tr.requires_grad = True
     x_vl.requires_grad = True
