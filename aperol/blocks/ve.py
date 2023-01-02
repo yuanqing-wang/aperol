@@ -9,7 +9,7 @@ from .aggregation import (
 __all__ = [
     "MeanNodeToEdgeAggregation",
     "SumNodeToEdgeAggregation",
-    "DotAttentionNodeToEdgeAggregation",
+    # "DotAttentionNodeToEdgeAggregation",
 ]
 
 class NodeToEdgeAggregation(Block):
@@ -35,7 +35,7 @@ class NodeToEdgeAggregation(Block):
         >>> v.shape[0], e.shape[0], x.shape[0]
         (2, 2, 2)
         """
-        e = self.aggregator(e, v.unsqueeze(-2), config=config)
+        e = self.aggregator(e, v.unsqueeze(-2).unsqueeze(-2), config=config)
         return v, e, x
 
 class MeanNodeToEdgeAggregation(NodeToEdgeAggregation):

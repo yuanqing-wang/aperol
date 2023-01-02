@@ -27,8 +27,9 @@ class Aggregation(Module):
         """
         if config is None:
             config = self.sample()
-        y = self.aggregator(y, dim=-2, keepdims=True)
+
         y = self.linear_y(y, config=config)
+        y = self.aggregator(y, dim=-2)
         x = self.linear_x(x, config=config)
         return x + y
 

@@ -201,7 +201,7 @@ class Smearing(Block):
         x_smeared = x_smeared * cutoff_indicator
 
         # (N, N, N_BASIS)
-        x_filtered = (filter * x_smeared).mean(-1)
+        x_filtered = (filter * x_smeared)
 
         # (N, N, out_features)
         e = self.filter_combine(x_filtered, config=config)\
@@ -246,7 +246,7 @@ class SpatialAttention(Block):
 
         x_k = self.linear_k(x[..., 1:], config=config)
         x_q = self.linear_q(x[..., 1:], config=config)
-        a = torch.linalg.norm(x_k.unsqueeze(0) - x_q.unsqueeze(1), dim=2)
+        a = torch.linalg.norm(x_k.unsqueeze(-3) - x_q.unsqueeze(-4), dim=-2)
         a = self.linear_summarize(a, config=config)
         e = self.linear(e, config=config)
         e = a + e

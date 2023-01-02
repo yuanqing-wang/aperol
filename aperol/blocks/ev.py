@@ -10,7 +10,7 @@ from .xe import get_distance, cosine_cutoff
 __all__ = [
     "MeanEdgeToNodeAggregation",
     "SumEdgeToNodeAggregation",
-    "DotAttentionEdgeToNodeAggregation",
+    # "DotAttentionEdgeToNodeAggregation",
 ]
 
 class EdgeToNodeAggregation(Block):
