@@ -42,12 +42,14 @@ class SuperModel(Module):
     """SuperModel consisting of SuperLayer. """
     def __init__(self, depth=MAX_DEPTH):
         super().__init__()
-        self.layers = torch.nn.Sequential(
-            *[SuperLayer() for _ in range(depth)]
+        self.layers = torch.nn.ModuleList(
+            [SuperLayer() for _ in range(depth)]
         )
 
     def forward(self, v, x, config=None):
         x_aux = torch.zeros(*x.shape[:-1], MAX_IN - 1)
         x = torch.cat([x, x_aux], dim=-1)
-        v, e, x = self.layers(v, e, x, config=config)
+        e = x.unsqueeze(-2) + x.unsqueeze(-3)
+        for layer in self.layers:
+            v, e, x = layer(v, e, x)
         return v, x
