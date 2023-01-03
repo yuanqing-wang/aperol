@@ -50,7 +50,6 @@ class SuperModel(Module):
         self.edge_right = torch.nn.Linear(in_features, MAX_IN)
         self.embedding_out = Linear(max_out=out_features)
 
-
     def forward(self, v, x, config=None):
         x = x.unsqueeze(-1)
         x_aux = torch.zeros(*x.shape[:-1], MAX_IN - 1)

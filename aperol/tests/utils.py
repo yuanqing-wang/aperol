@@ -16,6 +16,14 @@ def get_inputs():
     x = torch.randn(BATCH_SIZE, n, 3, cx)
     return v, e, x
 
+def get_model_inputs():
+    n = torch.randint(low=MIN_N_NODES, high=MAX_N_NODES, size=()).item()
+    cv = torch.randint(low=MIN_IN, high=MAX_IN, size=()).item()
+
+    v = torch.randn(BATCH_SIZE, n, cv)
+    x = torch.randn(BATCH_SIZE, n, 3)
+    return v, x
+
 def assert_number_of_dimensions_consistent(v0, e0, x0, v1, e1, x1):
     assert v1.dim() + 1 == e1.dim() == x1.dim()
 
