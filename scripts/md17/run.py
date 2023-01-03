@@ -13,6 +13,7 @@ def run(args):
     e = data['E'][idxs]
     i = data['z']
     f = data['F'][idxs]
+    e = (e - e.mean()) / e.std()
 
     i = torch.nn.functional.one_hot(torch.tensor(i).type(torch.int64)).float()[None, :, :]
     x = torch.tensor(x).float()
@@ -89,9 +90,13 @@ def run(args):
                 create_graph=True,
             )[0]
 
-            loss = torch.nn.L1Loss()(_f_tr, f_tr_pred) + 0.001 * torch.nn.L1Loss()(_e_tr, e_tr_pred)
-
+            # loss = torch.nn.L1Loss()(_f_tr, f_tr_pred) + 0.001 * torch.nn.L1Loss()(_e_tr, e_tr_pred)
+            loss = torch.nn.L1Loss()(_f_tr, f_tr_pred)
             loss.backward()
+
+            for parameter in model.parameters():
+                print(parameter.grad)
+            fuck
             optimizer.step()
 
 if __name__ == "__main__":
@@ -102,7 +107,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_vl", type=int, default=0)
     parser.add_argument("--batch_size", type=int, default=100)
     parser.add_argument("--n_epoch", type=int, default=3000)
-    parser.add_argument("--learning_rate", type=float, default=1e-3)
+    parser.add_argument("--learning_rate", type=float, default=1e-5)
     parser.add_argument("--weight_decay", type=float, default=1e-5)
     args = parser.parse_args()
     run(args)
