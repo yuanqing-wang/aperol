@@ -98,7 +98,7 @@ class Linear(Module):
 
     def reset_parameters(self):
         """Initialize weight and bias. """
-        torch.nn.init.xavier_uniform_(self.W)
+        torch.nn.init.xavier_uniform_(self.W, gain=0.01)
         if self.bias:
             torch.nn.init.zeros_(self.B)
 

@@ -84,19 +84,22 @@ def run(args):
             e_tr_pred, _ = model(i, _x_tr)
             e_tr_pred = e_tr_pred.sum(dim=1)
 
-            f_tr_pred = -1.0 * torch.autograd.grad(
-                e_tr_pred.sum(),
+            f_tr_pred = torch.autograd.grad(
+                -1.0 * e_tr_pred.sum(),
                 _x_tr,
                 create_graph=True,
+                allow_unused=True,
             )[0]
 
-            # loss = torch.nn.L1Loss()(_f_tr, f_tr_pred) + 0.001 * torch.nn.L1Loss()(_e_tr, e_tr_pred)
-            loss = torch.nn.L1Loss()(_f_tr, f_tr_pred)
-            loss.backward()
+            if f_tr_pred is None:
+                continue
 
+            loss = torch.nn.L1Loss()(_f_tr, f_tr_pred) + 0.001 * torch.nn.L1Loss()(_e_tr, e_tr_pred)
+            loss.backward()
+            print(loss)
             for parameter in model.parameters():
-                print(parameter.grad)
-            fuck
+                if parameter.grad is not None:
+                    parameter.grad.nan_to_num_(0.0)
             optimizer.step()
 
 if __name__ == "__main__":
@@ -108,6 +111,6 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=100)
     parser.add_argument("--n_epoch", type=int, default=3000)
     parser.add_argument("--learning_rate", type=float, default=1e-5)
-    parser.add_argument("--weight_decay", type=float, default=1e-5)
+    parser.add_argument("--weight_decay", type=float, default=1e-10)
     args = parser.parse_args()
     run(args)
