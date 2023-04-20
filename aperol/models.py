@@ -35,6 +35,8 @@ class SuperLayer(Module):
         if config is None:
             config = self.sample()
         block = self.all_blocks[config.cls.__name__]
+        e = torch.nn.functional.normalize(e, p=2, dim=-1)
+        v = torch.nn.functional.normalize(v, p=2, dim=-1)
         v, e, x = block(v, e, x)
         return v, e, x
 
