@@ -52,7 +52,7 @@ class SuperModel(Module):
 
     def forward(self, v, x, config=None):
         x = x.unsqueeze(-1)
-        x_aux = torch.zeros(*x.shape[:-1], MAX_IN - 1)
+        x_aux = torch.zeros(*x.shape[:-1], MAX_IN - 1, device=x.device)
         x = torch.cat([x, x_aux], dim=-1)
         e = self.edge_left(v.unsqueeze(-2)) + self.edge_right(v.unsqueeze(-3))
         for layer in self.layers:
