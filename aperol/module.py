@@ -40,7 +40,7 @@ class Module(torch.nn.Module):
             Geometry representation.
 
         p : torch.Tensor
-            Equivariant representation.
+            Momentum representation.
 
         Returns
         -------
@@ -51,10 +51,10 @@ class Module(torch.nn.Module):
             Edge representation.
 
         torch.Tensor
-            Equivariant representation.
+            Geometry representation.
 
         torch.Tensor
-            Equivariant representation.
+            Momentum representation.
         """
         if config is None:
             config = self.sample()
