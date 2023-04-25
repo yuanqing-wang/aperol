@@ -22,6 +22,7 @@ class Module(torch.nn.Module):
             v: torch.Tensor,
             e: torch.Tensor,
             x: torch.Tensor,
+            p: torch.Tensor,
             config: Optional[torch.Tensor] = None
         ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Forward call with optional config.
@@ -36,6 +37,9 @@ class Module(torch.nn.Module):
             Edge representation.
 
         x : torch.Tensor
+            Geometry representation.
+
+        p : torch.Tensor
             Equivariant representation.
 
         Returns
@@ -45,6 +49,9 @@ class Module(torch.nn.Module):
 
         torch.Tensor
             Edge representation.
+
+        torch.Tensor
+            Equivariant representation.
 
         torch.Tensor
             Equivariant representation.
