@@ -124,13 +124,8 @@ class Linear(Module):
 
         Examples
         --------
-        >>> parametrized_module = Module()
-        >>> W, B = parametrized_module.slice(2666, 1984)
-        Traceback (most recent call last):
-        ...
-        AssertionError: assert ... <= ...
-
-        >>> W, B = parametrized_module.slice(4, 3)
+        >>> linear = Linear()
+        >>> W, B = linear.slice(4, 3)
         >>> list(W.shape)
         [4, 3]
         >>> list(B.shape)

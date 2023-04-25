@@ -32,9 +32,10 @@ class EdgeToNodeAggregation(Block):
         >>> v = torch.zeros(2, 5)
         >>> e = torch.zeros(2, 2, 4)
         >>> x = torch.zeros(2, 3, 6)
-        >>> v, e, x = edge_to_node_aggregation(v, e, x)
-        >>> v.shape[0], e.shape[0], x.shape[0]
-        (2, 2, 2)
+        >>> p = torch.zeros(2, 3, 7)
+        >>> v, e, x, p = edge_to_node_aggregation(v, e, x, p)
+        >>> v.shape[0], e.shape[0], x.shape[0], p.shape[0]
+        (2, 2, 2, 2)
         """
         if config is None:
             config = self.sample()

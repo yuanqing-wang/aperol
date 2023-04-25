@@ -25,7 +25,8 @@ class DotProductReduce(Block):
         >>> v = torch.zeros(2, 5)
         >>> e = torch.zeros(2, 2, 8)
         >>> x = torch.zeros(2, 3, 6)
-        >>> v, e, x = reduce(v, e, x)
+        >>> p = torch.zeros(2, 3, 7)
+        >>> v, e, x, p = reduce(v, e, x, p)
         """
         if config is None:
             config = self.sample()

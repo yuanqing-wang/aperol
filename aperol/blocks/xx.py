@@ -23,7 +23,7 @@ class GeometryUpdate(Block):
         >>> p = torch.zeros(2, 3, 7)
         >>> config = geometry_update.Config(10)
         >>> v1, e1, x1, p1 = geometry_update(v, e, x, p, config=config)
-        >>> list(p.shape)
+        >>> list(p1.shape)
         [2, 3, 10]
         >>> assert torch.isclose(v1, v).all()
         >>> assert torch.isclose(e1, e).all()
