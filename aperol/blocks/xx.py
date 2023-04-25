@@ -12,7 +12,7 @@ class GeometryUpdate(Block):
             activation=None, bias=False, max_in=MAX_IN-1, max_out=MAX_OUT-1,
         )
 
-    def forward(self, v, e, x, config=None):
+    def forward(self, v, e, x, p, config=None):
         """
         Examples
         --------

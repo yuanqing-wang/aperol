@@ -21,7 +21,7 @@ class NodeToEdgeAggregation(Block):
     def sample(self):
         return self.aggregator.sample()._replace(cls=self.__class__)
 
-    def forward(self, v, e, x, config=None):
+    def forward(self, v, e, x, p, config=None):
         """
 
         Examples

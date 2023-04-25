@@ -21,7 +21,7 @@ class SuperLayer(Module):
         config = block.sample()
         return config
 
-    def forward(self, v, e, x, config=None):
+    def forward(self, v, e, x, p, config=None):
         """
 
         Examples
@@ -29,16 +29,17 @@ class SuperLayer(Module):
         >>> v = torch.zeros(2, 5)
         >>> e = torch.zeros(2, 2, 8)
         >>> x = torch.zeros(2, 3, 6)
+        >>> p = torch.zeros(2, 3, 7)
         >>> layer = SuperLayer()
-        >>> v, e, x = layer(v, e, x)
+        >>> v, e, x, p = layer(v, e, x, p)
         """
         if config is None:
             config = self.sample()
         block = self.all_blocks[config.cls.__name__]
-        e = torch.nn.functional.normalize(e, p=2, dim=-1)
-        v = torch.nn.functional.normalize(v, p=2, dim=-1)
-        v, e, x = block(v, e, x)
-        return v, e, x
+        # e = torch.nn.functional.normalize(e, p=2, dim=-1)
+        # v = torch.nn.functional.normalize(v, p=2, dim=-1)
+        v, e, x, p = block(v, e, x, p)
+        return v, e, x, p
 
 class SuperModel(Module):
     """SuperModel consisting of SuperLayer. """
@@ -54,11 +55,10 @@ class SuperModel(Module):
 
     def forward(self, v, x, config=None):
         x = x.unsqueeze(-1)
-        x_aux = torch.zeros(*x.shape[:-1], MAX_IN - 1, device=x.device)
-        x = torch.cat([x, x_aux], dim=-1)
+        p = torch.zeros(*x.shape[:-1], MAX_IN - 1, device=x.device)
         e = self.edge_left(v.unsqueeze(-2)) + self.edge_right(v.unsqueeze(-3))
         for layer in self.layers:
-            v, e, x = layer(v, e, x)
+            v, e, x, p = layer(v, e, x, p)
         config = self.embedding_out.Config(self.embedding_out.max_out)
         v = self.embedding_out(v, config=config)
         return v, x

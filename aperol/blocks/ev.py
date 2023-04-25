@@ -22,7 +22,7 @@ class EdgeToNodeAggregation(Block):
     def sample(self):
         return self.aggregator.sample()._replace(cls=self.__class__)
 
-    def forward(self, v, e, x, config=None):
+    def forward(self, v, e, x, p, config=None):
         """
 
         Examples
@@ -40,7 +40,7 @@ class EdgeToNodeAggregation(Block):
             config = self.sample()
         cutoff = cosine_cutoff(get_distance(x[..., 0]))
         v = self.aggregator(v, cutoff * e, config=config)
-        return v, e, x
+        return v, e, x, p
 
 class MeanEdgeToNodeAggregation(EdgeToNodeAggregation):
     __init__ = partialmethod(EdgeToNodeAggregation.__init__, MeanAggregation)
