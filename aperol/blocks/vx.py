@@ -17,7 +17,7 @@ class Damping(Block):
         )
 
     def sample(self):
-        return self.linear_x.sample()._replace(cls=self.__class__)
+        return self.linear_p.sample()._replace(cls=self.__class__)
 
     def forward(self, v, e, x, p, config=None):
         if config is None:

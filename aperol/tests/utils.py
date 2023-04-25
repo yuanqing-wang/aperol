@@ -28,7 +28,7 @@ def get_model_inputs():
     return v, x
 
 def assert_number_of_dimensions_consistent(v0, e0, x0, p0, v1, e1, x1, p1):
-    assert v1.dim() + 1 == e1.dim() == x1.dim() = p1.dim()
+    assert v1.dim() + 1 == e1.dim() == x1.dim() == p1.dim()
 
 def assert_number_of_dimensions_unchanged(v0, e0, x0, p0, v1, e1, x1, p1):
     assert v0.dim() == v1.dim()
