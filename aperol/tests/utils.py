@@ -10,11 +10,14 @@ def get_inputs():
     cv = torch.randint(low=MIN_IN, high=MAX_IN, size=()).item()
     ce = torch.randint(low=MIN_IN, high=MAX_IN, size=()).item()
     cx = torch.randint(low=MIN_IN, high=MAX_IN, size=()).item()
+    cp = torch.randint(low=MIN_IN, high=MAX_IN, size=()).item()
 
     v = torch.randn(BATCH_SIZE, n, cv)
     e = torch.randn(BATCH_SIZE, n, n, ce)
     x = torch.randn(BATCH_SIZE, n, 3, cx)
-    return v, e, x
+    p = torch.randn(BATCH_SIZE, n, 3, cp)
+
+    return v, e, x, p
 
 def get_model_inputs():
     n = torch.randint(low=MIN_N_NODES, high=MAX_N_NODES, size=()).item()
@@ -24,21 +27,23 @@ def get_model_inputs():
     x = torch.randn(BATCH_SIZE, n, 3)
     return v, x
 
-def assert_number_of_dimensions_consistent(v0, e0, x0, v1, e1, x1):
-    assert v1.dim() + 1 == e1.dim() == x1.dim()
+def assert_number_of_dimensions_consistent(v0, e0, x0, p0, v1, e1, x1, p1):
+    assert v1.dim() + 1 == e1.dim() == x1.dim() = p1.dim()
 
-def assert_number_of_dimensions_unchanged(v0, e0, x0, v1, e1, x1):
+def assert_number_of_dimensions_unchanged(v0, e0, x0, p0, v1, e1, x1, p1):
     assert v0.dim() == v1.dim()
     assert e0.dim() == e1.dim()
     assert x0.dim() == x1.dim()
+    assert p0.dim() == p1.dim()
 
-def assert_number_of_particles_unchanged(v0, e0, x0, v1, e1, x1):
-    assert v1.shape[-2] == e1.shape[-2] == e1.shape[-3] == x1.shape[-3]
+def assert_number_of_particles_unchanged(v0, e0, x0, p0, v1, e1, x1, p1):
+    assert v1.shape[-2] == e1.shape[-2] \
+        == e1.shape[-3] == x1.shape[-3] == p1.shape[-3]
 
-def assert_dimension_reasonable(v0, e0, x0, v1, e1, x1):
-    assert_number_of_dimensions_consistent(v0, e0, x0, v1, e1, x1)
-    assert_number_of_dimensions_unchanged(v0, e0, x0, v1, e1, x1)
-    assert_number_of_particles_unchanged(v0, e0, x0, v1, e1, x1)
+def assert_dimension_reasonable(v0, e0, x0, p0, v1, e1, x1, p1):
+    assert_number_of_dimensions_consistent(v0, e0, x0, p0, v1, e1, x1, p1)
+    assert_number_of_dimensions_unchanged(v0, e0, x0, p0, v1, e1, x1, p1)
+    assert_number_of_particles_unchanged(v0, e0, x0, p0, v1, e1, x1, p1)
 
 def get_translation_rotation_reflection():
     x_translation = torch.distributions.Normal(
