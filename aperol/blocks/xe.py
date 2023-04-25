@@ -168,7 +168,8 @@ class Smearing(Block):
         return self.linear.sample()._replace(cls=self.__class__)
 
     def forward(
-            self, v: torch.Tensor, e: torch.Tensor, x: torch.Tensor,
+            self, 
+            v: torch.Tensor, e: torch.Tensor, x: torch.Tensor, p: torch.Tensor,
             config: Optional[NamedTuple] = None,
         ):
         """Smear distances with a kernel.
@@ -179,7 +180,8 @@ class Smearing(Block):
         >>> v = torch.zeros(2, 5)
         >>> e = torch.zeros(2, 2, 8)
         >>> x = torch.zeros(2, 3, 6)
-        >>> v, e, x = smearing(v, e, x)
+        >>> p = torch.zeros(2, 3, 7)
+        >>> v, e, x, p = smearing(v, e, x, p)
         """
         if config is None:
             config = self.sample()
@@ -207,7 +209,7 @@ class Smearing(Block):
         e = self.filter_combine(x_filtered, config=config)\
             + self.linear(e, config=config)
 
-        return v, e, x
+        return v, e, x, p
 
 class RBFSmearing(Smearing):
     __init__ = partialmethod(Smearing.__init__, rbf)
@@ -228,7 +230,8 @@ class SpatialAttention(Block):
         return self.linear.sample()._replace(cls=self.__class__)
 
     def forward(
-            self, v: torch.Tensor, e: torch.Tensor, x: torch.Tensor,
+            self, 
+            v: torch.Tensor, e: torch.Tensor, x: torch.Tensor, p: torch.Tensor,
             config: Optional[NamedTuple] = None,
         ):
         """
@@ -239,15 +242,16 @@ class SpatialAttention(Block):
         >>> v = torch.zeros(2, 5)
         >>> e = torch.zeros(2, 2, 4)
         >>> x = torch.zeros(2, 3, 6)
-        >>> v, e, x = spatial_attention(v, e, x)
+        >>> p = torch.zeros(2, 3, 7)
+        >>> v, e, x, p = spatial_attention(v, e, x, p)
         """
         if config is None:
             config = self.sample()
 
-        x_k = self.linear_k(x[..., 1:], config=config)
-        x_q = self.linear_q(x[..., 1:], config=config)
+        x_k = self.linear_k(p, config=config)
+        x_q = self.linear_q(p, config=config)
         a = torch.linalg.norm(x_k.unsqueeze(-3) - x_q.unsqueeze(-4), dim=-2)
         a = self.linear_summarize(a, config=config)
         e = self.linear(e, config=config)
         e = a + e
-        return v, e, x
+        return v, e, x, p

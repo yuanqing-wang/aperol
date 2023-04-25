@@ -10,6 +10,7 @@ class Identity(Block):
             v: torch.Tensor,
             e: torch.Tensor,
             x: torch.Tensor,
+            p: torch.Tensor,
             *args, **kwargs,
-        ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        return v, e, x
+        ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        return v, e, x, p

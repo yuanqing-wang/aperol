@@ -17,7 +17,7 @@ class DotProductReduce(Block):
     def sample(self):
         return self.linear.sample()._replace(cls=self.__class__)
 
-    def forward(self, v, e, x, config=None):
+    def forward(self, v, e, x, p, config=None):
         """
         Examples
         --------
@@ -31,11 +31,8 @@ class DotProductReduce(Block):
             config = self.sample()
 
         # (N, 3, D)
-        x_eq = x[..., 1:]
-
-        # (N, 3, D)
-        k = self.linear_k(x_eq, config=config)
-        q = self.linear_q(x_eq, config=config)
+        k = self.linear_k(p, config=config)
+        q = self.linear_q(p, config=config)
 
         # (N, D)
         kq = (k * q).sum(-2)
@@ -44,4 +41,4 @@ class DotProductReduce(Block):
         # (N, D)
         v = self.linear(v, config=config) + kq
 
-        return v, e, x
+        return v, e, x, p
