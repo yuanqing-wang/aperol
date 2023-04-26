@@ -2,7 +2,6 @@ import torch
 import os
 import numpy as np
 import torch
-import networkx as nx
 from aperol.models import SuperModel
 
 def run(args):
@@ -44,6 +43,7 @@ def run(args):
     e_te = e[n_tr+n_vl:]
     f_te = f[n_tr+n_vl:]
 
+    model = SuperModel(i.shape[-1], 1)
 
     if torch.cuda.is_available():
         model = model.cuda()
@@ -61,8 +61,7 @@ def run(args):
         f_te = f_te.cuda()
         i = i.cuda()
 
-    model = SuperModel(i.shape[-1], 1)
-
+    
     x_tr.requires_grad = True
     x_vl.requires_grad = True
     x_te.requires_grad = True
@@ -96,7 +95,8 @@ def run(args):
 
             loss = torch.nn.L1Loss()(_f_tr, f_tr_pred) + 0.001 * torch.nn.L1Loss()(_e_tr, e_tr_pred)
             loss.backward()
-            print(loss)
+            if idx_batch == 0:
+                print(idx_epoch, loss, flush=True)
             for parameter in model.parameters():
                 if parameter.grad is not None:
                     parameter.grad.nan_to_num_(0.0)
@@ -108,8 +108,8 @@ if __name__ == "__main__":
     parser.add_argument("--data", type=str, default="malonaldehyde")
     parser.add_argument("--n_tr", type=int, default=1000)
     parser.add_argument("--n_vl", type=int, default=0)
-    parser.add_argument("--batch_size", type=int, default=100)
-    parser.add_argument("--n_epoch", type=int, default=3000)
+    parser.add_argument("--batch_size", type=int, default=128)
+    parser.add_argument("--n_epoch", type=int, default=100000)
     parser.add_argument("--learning_rate", type=float, default=1e-5)
     parser.add_argument("--weight_decay", type=float, default=1e-10)
     args = parser.parse_args()

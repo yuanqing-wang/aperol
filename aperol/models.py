@@ -38,6 +38,7 @@ class SuperLayer(Module):
         block = self.all_blocks[config.cls.__name__]
         # e = torch.nn.functional.normalize(e, p=2, dim=-1)
         # v = torch.nn.functional.normalize(v, p=2, dim=-1)
+        print(v.device, e.device, x.device, p.device)
         v, e, x, p = block(v, e, x, p)
         return v, e, x, p
 
