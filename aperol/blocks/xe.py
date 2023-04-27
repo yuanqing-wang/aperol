@@ -111,7 +111,7 @@ def rbf(x, num_basis=NUM_BASIS, lower=CUTOFF_LOWER, upper=CUTOFF_UPPER):
     >>> rbf(x_distance).shape
     torch.Size([8, 8, 50])
     """
-    offset = torch.linspace(lower, upper, num_basis)
+    offset = torch.linspace(lower, upper, num_basis, device=x.device)
     coeff = -0.5 / (offset[1] - offset[0]) ** 2
     x = x - offset
     return torch.exp(coeff * torch.pow(x, 2))
@@ -135,14 +135,13 @@ def erbf(x, num_basis=NUM_BASIS, lower=0.0, upper=5.0):
     >>> erbf(x_distance).shape
     torch.Size([8, 8, 50])
     """
-    start_value = torch.exp(
-        torch.scalar_tensor(-upper + lower)
-    )
+    start_value = math.exp(-upper + lower)
 
-    means = torch.linspace(start_value, 1, num_basis)
+    means = torch.linspace(start_value, 1, num_basis, device=x.device)
     alpha = 5.0 / (upper - lower)
     betas = torch.tensor(
-        [(2 / num_basis * (1 - start_value)) ** -2] * num_basis
+        [(2 / num_basis * (1 - start_value)) ** -2] * num_basis,
+        device=x.device,
     )
 
     return torch.exp(
