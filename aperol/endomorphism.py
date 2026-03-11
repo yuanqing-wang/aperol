@@ -13,10 +13,9 @@ class Endomorphism(torch.nn.Module):
         
     def forward(self, state):
         if self.field == "node":
-            state.node = self.layers(state.node)
+            return state.replace(node=self.layers(state.node))
         elif self.field == "edge":
-            state.edge = self.layers(state.edge)
+            return state.replace(edge=self.layers(state.edge))
         else:
             raise ValueError(f"Unknown field: {self.field}")
-        return state
         

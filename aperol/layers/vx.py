@@ -7,17 +7,12 @@ class VelocityToPositionProjection(Module):
     
     Examples
     --------
-    >>> import torch
-    >>> state = State(
-    ...     node=torch.randn(5, 16),
-    ...     edge=torch.randn(5, 5, 16),
-    ...     position=torch.randn(5, 3, 8),
-    ...     velocity=torch.randn(5, 3, 7),
-    ... )
+    >>> from ..test_utils import get_random_state
+    >>> state = get_random_state()
     >>> proj = VelocityToPositionProjection()
     >>> new_state = proj(state)
-    >>> assert new_state.position.shape == (5, 3, 8)
-    >>> assert new_state.velocity.shape == (5, 3, 7)
+    >>> assert new_state.position.shape == state.position.shape
+    >>> assert new_state.velocity.shape == state.velocity.shape
     """
     def __init__(self):
         super().__init__()
@@ -27,5 +22,5 @@ class VelocityToPositionProjection(Module):
         self.weight.materialize((state.velocity.shape[-1], state.position.shape[-1]))
     
     def forward(self, state: State) -> State:
-        state.position = state.position + state.velocity @ self.weight
-        return state
+        new_position = state.position + state.velocity @ self.weight
+        return state.replace(position=new_position)

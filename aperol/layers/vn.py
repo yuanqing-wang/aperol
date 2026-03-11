@@ -7,16 +7,11 @@ class VelocityNormToNode(Module):
     
     Examples
     --------
-    >>> import torch
-    >>> state = State(
-    ...     node=torch.randn(5, 16),
-    ...     edge=torch.randn(5, 5, 16),
-    ...     position=torch.randn(5, 3, 8),
-    ...     velocity=torch.randn(5, 3, 7),
-    ... )
+    >>> from ..test_utils import get_random_state
+    >>> state = get_random_state()
     >>> norm_to_node = VelocityNormToNode()
     >>> new_state = norm_to_node(state)
-    >>> assert new_state.node.shape == (5, 16)
+    >>> assert new_state.node.shape == state.node.shape
         
     """
     def __init__(self):
@@ -28,6 +23,6 @@ class VelocityNormToNode(Module):
     
     def forward(self, state: State) -> State:
         norm = torch.norm(state.velocity, dim=-2)  # (N, Dv)
-        state.node = state.node + norm @ self.weight  # (N, D)
-        return state
+        new_node = state.node + norm @ self.weight  # (N, D)
+        return state.replace(node=new_node)
         

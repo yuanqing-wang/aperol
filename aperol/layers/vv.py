@@ -12,16 +12,11 @@ class VelocityProjection(Module):
         
     Examples
     --------
-    >>> import torch
-    >>> state = State(
-    ...     node=torch.randn(5, 16),
-    ...     edge=torch.randn(5, 5, 16),
-    ...     position=torch.randn(5, 3, 8),
-    ...     velocity=torch.randn(5, 3, 7),
-    ... )
+    >>> from ..test_utils import get_random_state
+    >>> state = get_random_state()
     >>> proj = VelocityProjection(features=10)
     >>> new_state = proj(state)
-    >>> assert new_state.velocity.shape == (5, 3, 10)
+    >>> assert new_state.velocity.shape == (state.velocity.shape[0], state.velocity.shape[1], 10)
         
     """
     def __init__(
@@ -32,5 +27,5 @@ class VelocityProjection(Module):
         self.linear = torch.nn.LazyLinear(features, bias=False)
     
     def forward(self, state: State) -> State:
-        state.velocity = self.linear(state.velocity)
-        return state
+        new_velocity = self.linear(state.velocity)
+        return state.replace(velocity=new_velocity)
