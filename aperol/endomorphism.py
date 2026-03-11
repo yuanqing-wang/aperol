@@ -1,4 +1,5 @@
 import torch
+from functools import partialmethod
 
 class Endomorphism(torch.nn.Module):
     def __init__(
@@ -18,4 +19,10 @@ class Endomorphism(torch.nn.Module):
             return state.replace(edge=self.layers(state.edge))
         else:
             raise ValueError(f"Unknown field: {self.field}")
+        
+class NodeEndomorphism(Endomorphism):
+    __init__ = partialmethod(Endomorphism.__init__, field="node")
+        
+class EdgeEndomorphism(Endomorphism):
+    __init__ = partialmethod(Endomorphism.__init__, field="edge")
         

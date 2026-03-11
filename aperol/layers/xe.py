@@ -1,5 +1,6 @@
 from functools import partialmethod
 import math
+from turtle import forward
 from typing import Callable 
 import torch
 from ..module import Module
@@ -199,4 +200,49 @@ class RBFSmearing(Smearing):
     __init__ = partialmethod(Smearing.__init__, rbf)
 
 class ERBFSmearing(Smearing):
+    """ Smearing layer using exponential radial basis function (ERBF) kernel.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from ..test_utils import get_random_state
+    >>> state = get_random_state()
+    >>> erbf_smearing = ERBFSmearing()
+    >>> new_state = erbf_smearing(state)
+    >>> assert new_state.edge.shape == state.edge.shape
+
+    """
     __init__ = partialmethod(Smearing.__init__, erbf)
+
+class SpatialAttention(Module):
+    """ Spatial attention layer.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from ..test_utils import get_random_state
+    >>> state = get_random_state()
+    >>> sa = SpatialAttention(features=8)
+    >>> new_state = sa(state)
+    >>> assert new_state.edge.shape == state.edge.shape
+    """
+    def __init__(self, features: int):
+        super().__init__()
+        self.k = torch.nn.LazyLinear(out_features=features)
+        self.q = torch.nn.LazyLinear(out_features=features)
+
+        self.features = features
+        
+    def initialize_parameters(self, state):
+        self.weight.materialize((self.features, state.edge.shape[-1]))
+        
+    def forward(self, state: State) -> State:
+        delta_x = get_delta_x(state.position)  # (N, N, 3, Dx)
+        k, q = self.k(delta_x), self.q(delta_x)  # (N, N, 3, D_combination)
+        att = torch.einsum("...ab,...ab->...b", k, q)  # (N, N, D_combination)
+
+
+
+        state = state.replace(edge=state.edge + att)
+        return state
+        
