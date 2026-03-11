@@ -1,9 +1,9 @@
 """Geometry to edge modules. """
 from functools import partialmethod
-from typing import Callable, NamedTuple, Optional
+from typing import Callable
 import torch
 import math
-from ..module import Block, Linear
+from ..module import Module, Linear
 from ..constants import NUM_BASIS, CUTOFF_LOWER, CUTOFF_UPPER
 
 __all__ = ["RBFSmearing", "ERBFSmearing"]
@@ -148,28 +148,22 @@ def erbf(x, num_basis=NUM_BASIS, lower=0.0, upper=5.0):
         -betas * (torch.exp(alpha * (-x + lower)) - means) ** 2
     )
 
-class Smearing(Block):
+class Smearing(Module):
     """Smear the distance into multi-dimensional vectors. """
-    def __init__(self, kernel: Callable = rbf):
+    def __init__(
+            self, 
+            hidden_features: int,
+            kernel: Callable = rbf,
+        ):
         super().__init__()
         self.kernel = kernel
-        self.filter_generation = Linear(
-            max_out=NUM_BASIS,
-            activation=None, bias=False,
-        )
-        self.filter_combine = Linear(
-            max_in=NUM_BASIS,
-            activation=None, bias=None,
-        )
-        self.linear = Linear()
-
-    def sample(self):
-        return self.linear.sample()._replace(cls=self.__class__)
+        self.filter_generation = torch.nn.LazyLinear(out_features=NUM_BASIS, bias=False)
+        self.filter_combine = torch.nn.LazyLinear(out_features=hidden_features, bias=False)
+        self.linear = torch.nn.LazyLinear(out_features=hidden_features)
 
     def forward(
             self, 
             v: torch.Tensor, e: torch.Tensor, x: torch.Tensor, p: torch.Tensor,
-            config: Optional[NamedTuple] = None,
         ):
         """Smear distances with a kernel.
 
@@ -182,14 +176,8 @@ class Smearing(Block):
         >>> p = torch.zeros(2, 3, 7)
         >>> v, e, x, p = smearing(v, e, x, p)
         """
-        if config is None:
-            config = self.sample()
-
-        # fix the out_features for filter generation
-        filter_config = self.filter_generation.Config(NUM_BASIS)
-
         # (N, N, N_BASIS)
-        filter = self.filter_generation(e, filter_config)
+        filter = self.filter_generation(e)
 
         # (N, N, 1)
         delta_x_norm = get_distance(x[..., 0])
@@ -205,8 +193,8 @@ class Smearing(Block):
         x_filtered = (filter * x_smeared)
 
         # (N, N, out_features)
-        e = self.filter_combine(x_filtered, config=config)\
-            + self.linear(e, config=config)
+        e = self.filter_combine(x_filtered, out_features=e.shape[-1])\
+            + self.linear(e)
 
         return v, e, x, p
 
@@ -215,4 +203,3 @@ class RBFSmearing(Smearing):
 
 class ERBFSmearing(Smearing):
     __init__ = partialmethod(Smearing.__init__, erbf)
-

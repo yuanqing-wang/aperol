@@ -1,7 +1,7 @@
 """Edge to node modules. """
 from typing import Optional
 from functools import partialmethod
-from ..module import Module, Block
+from ..module import Module
 from .aggregation import (
     MeanAggregation, SumAggregation, DotAttentionAggregation,
 )
@@ -10,19 +10,16 @@ from .xe import get_distance, cosine_cutoff
 __all__ = [
     "MeanEdgeToNodeAggregation",
     "SumEdgeToNodeAggregation",
-    # "DotAttentionEdgeToNodeAggregation",
+    "DotAttentionEdgeToNodeAggregation",
 ]
 
-class EdgeToNodeAggregation(Block):
+class EdgeToNodeAggregation(Module):
     """Aggregate from edge to node. """
     def __init__(self, aggregator: Optional[type] = MeanAggregation):
         super().__init__()
         self.aggregator = aggregator()
 
-    def sample(self):
-        return self.aggregator.sample()._replace(cls=self.__class__)
-
-    def forward(self, v, e, x, p, config=None):
+    def forward(self, v, e, x, p):
         """
 
         Examples
@@ -37,10 +34,8 @@ class EdgeToNodeAggregation(Block):
         >>> v.shape[0], e.shape[0], x.shape[0], p.shape[0]
         (2, 2, 2, 2)
         """
-        if config is None:
-            config = self.sample()
         cutoff = cosine_cutoff(get_distance(x[..., 0]))
-        v = self.aggregator(v, cutoff * e, config=config)
+        v = self.aggregator(v, cutoff * e)
         return v, e, x, p
 
 class MeanEdgeToNodeAggregation(EdgeToNodeAggregation):

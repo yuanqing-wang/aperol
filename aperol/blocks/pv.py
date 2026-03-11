@@ -1,12 +1,12 @@
 """Geometry to node modules. """
 
 import torch
-from ..module import Block, Linear
+from ..module import Module, Linear
 
 __all__ = ["DotProductReduce"]
 
 
-class DotProductReduce(Block):
+class DotProductReduce(Module):
     def __init__(self):
         super().__init__()
         self.linear_k = Linear(activation=None, bias=False)
@@ -14,10 +14,7 @@ class DotProductReduce(Block):
         self.linear_summarize = Linear()
         self.linear = Linear()
 
-    def sample(self):
-        return self.linear.sample()._replace(cls=self.__class__)
-
-    def forward(self, v, e, x, p, config=None):
+    def forward(self, v, e, x, p):
         """
         Examples
         --------
@@ -28,18 +25,15 @@ class DotProductReduce(Block):
         >>> p = torch.zeros(2, 3, 7)
         >>> v, e, x, p = reduce(v, e, x, p)
         """
-        if config is None:
-            config = self.sample()
-
         # (N, 3, D)
-        k = self.linear_k(p, config=config)
-        q = self.linear_q(p, config=config)
+        k = self.linear_k(p)
+        q = self.linear_q(p)
 
         # (N, D)
         kq = (k * q).sum(-2)
-        kq = self.linear_summarize(kq, config=config)
+        kq = self.linear_summarize(kq)
 
         # (N, D)
-        v = self.linear(v, config=config) + kq
+        v = self.linear(v) + kq
 
         return v, e, x, p

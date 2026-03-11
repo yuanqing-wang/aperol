@@ -7,24 +7,23 @@ from utils import (
     get_translation_rotation_reflection,
 )
 
-@pytest.mark.parametrize("Block", list(aperol.blocks.all_blocks.values()))
-def test_dimension_reasonable(Block, *args):
+@pytest.mark.parametrize("block_cls", list(aperol.blocks.all_blocks.values()))
+def test_dimension_reasonable(block_cls, *args):
     v0, e0, x0, p0 = get_inputs()
-    v1, e1, x1, p1 = Block()(v0, e0, x0, p0)
+    v1, e1, x1, p1 = block_cls()(v0, e0, x0, p0)
     assert_dimension_reasonable(v0, e0, x0, p0, v1, e1, x1, p1)
 
-@pytest.mark.parametrize("Block", list(aperol.blocks.all_blocks.values()))
-def test_equivariance(Block, *args):
-    block = Block()
-    config = block.sample()
+@pytest.mark.parametrize("block_cls", list(aperol.blocks.all_blocks.values()))
+def test_equivariance(block_cls, *args):
+    block = block_cls()
     v0, e0, x0, p0 = get_inputs()
-    v1, e1, x1, p1 = block(v0, e0, x0, p0, config=config)
+    v1, e1, x1, p1 = block(v0, e0, x0, p0)
     translation, rotation, reflection = get_translation_rotation_reflection()
 
     # test translation
     x0_translation = translation(x0)
     v1_translation, e1_translation, x1_translation, p1_translation = block(
-        v0, e0, x0_translation, p0, config=config
+        v0, e0, x0_translation, p0
     )
 
     assert torch.allclose(v1_translation, v1, atol=1e-3, rtol=1e-3)
@@ -37,7 +36,7 @@ def test_equivariance(Block, *args):
     x0_rotation = rotation(x0)
     p0_rotation = rotation(p0)
     v1_rotation, e1_rotation, x1_rotation, p0_rotation = block(
-        v0, e0, x0_rotation, p0_rotation, config=config,
+        v0, e0, x0_rotation, p0_rotation,
     )
     assert torch.allclose(v1_rotation, v1, atol=1e-3, rtol=1e-3)
     assert torch.allclose(e1_rotation, e1, atol=1e-3, rtol=1e-3)
@@ -46,7 +45,7 @@ def test_equivariance(Block, *args):
     x0_reflection = reflection(x0)
     p0_reflection = reflection(p0)
     v1_reflection, e1_reflection, x1_reflection, p1_reflection = block(
-        v0, e0, x0_reflection, p0_reflection, config=config,
+        v0, e0, x0_reflection, p0_reflection,
     )
     assert torch.allclose(v1_reflection, v1, atol=1e-3, rtol=1e-3)
     assert torch.allclose(e1_reflection, e1, atol=1e-3, rtol=1e-3)

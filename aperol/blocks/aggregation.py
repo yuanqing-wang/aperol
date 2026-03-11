@@ -1,7 +1,7 @@
 """General aggregation methods. """
 from functools import partial
 import torch
-from ..module import Module, Linear
+from ..module import Module
 
 class Aggregation(Module):
     def __init__(self, aggregator, *args, **kwargs):
@@ -10,10 +10,7 @@ class Aggregation(Module):
         self.linear_x = Linear()
         self.linear_y = Linear()
 
-    def sample(self):
-        return self.linear_x.sample()._replace(cls=self.__class__)
-
-    def forward(self, x, y, config=None):
+    def forward(self, x, y):
         """Aggregates y onto x and transform.
 
         Examples
@@ -25,12 +22,9 @@ class Aggregation(Module):
         >>> z.shape[0]
         5
         """
-        if config is None:
-            config = self.sample()
-
-        y = self.linear_y(y, config=config)
+        y = self.linear_y(y)
         y = self.aggregator(y, dim=-2)
-        x = self.linear_x(x, config=config)
+        x = self.linear_x(x)
         return x + y
 
 
@@ -45,10 +39,7 @@ class DotAttentionAggregation(Module):
         self.linear_v = Linear()
         self.linear = Linear()
 
-    def sample(self):
-        return self.linear.sample()._replace(cls=self.__class__)
-
-    def forward(self, x, y, config=None):
+    def forward(self, x, y):
         """Aggregates y onto x with dot product attention.
 
         Examples
@@ -60,11 +51,9 @@ class DotAttentionAggregation(Module):
         >>> z.shape[0]
         5
         """
-        if config is None:
-            config = self.sample()
-        k = self.linear_k(x, config=config)
-        q = self.linear_q(y, config=config)
+        k = self.linear_k(x)
+        q = self.linear_q(y)
         y = (k @ q.swapaxes(-1, -2)).softmax(-1) @ y # x, y
-        y = self.linear_v(y, config=config).sum(-2, keepdims=True)
-        x = self.linear(x, config=config)
+        y = self.linear_v(y).sum(-2, keepdims=True)
+        x = self.linear(x)
         return x + y
