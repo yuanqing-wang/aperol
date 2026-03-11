@@ -230,7 +230,13 @@ class SpatialAttention(Module):
         super().__init__()
         self.k = torch.nn.LazyLinear(out_features=features)
         self.q = torch.nn.LazyLinear(out_features=features)
-
+        self.layers = torch.nn.Sequential(
+            torch.nn.Linear(features, features),
+            torch.nn.SiLU(),
+            torch.nn.Linear(features, features),
+            torch.nn.SiLU(),
+        )
+        self.weight = torch.nn.UninitializedParameter()
         self.features = features
         
     def initialize_parameters(self, state):
@@ -240,9 +246,7 @@ class SpatialAttention(Module):
         delta_x = get_delta_x(state.position)  # (N, N, 3, Dx)
         k, q = self.k(delta_x), self.q(delta_x)  # (N, N, 3, D_combination)
         att = torch.einsum("...ab,...ab->...b", k, q)  # (N, N, D_combination)
-
-
-
+        att = self.layers(att) @ self.weight  # (N, N, D_combination)
         state = state.replace(edge=state.edge + att)
         return state
         
