@@ -23,7 +23,8 @@ class PositionToVelocityKick(Module):
         
     def initialize_parameters(self, state):
         self.weight.materialize((state.position.shape[-1], state.velocity.shape[-1]))
-
+        torch.nn.init.xavier_uniform_(self.weight)
+        
     def forward(self, state: State) -> State:
         delta_x = state.position.unsqueeze(-3) - state.position.unsqueeze(-4)  # (N, N, 3, Dx)
         new_velocity = state.velocity + (delta_x @ self.weight).mean(dim=-3)  # (N, Dv)

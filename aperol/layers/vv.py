@@ -33,6 +33,7 @@ class VelocityProjection(Module):
         in_features = state.velocity.shape[-1]
         out_features = self.features if self.features is not None else in_features
         self.weight.materialize((in_features, out_features))
+        torch.nn.init.xavier_uniform_(self.weight)
     
     def forward(self, state: State) -> State:
         new_velocity = state.velocity @ self.weight

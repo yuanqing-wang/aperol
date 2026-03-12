@@ -12,8 +12,8 @@ class Module(LazyModuleMixin, torch.nn.Module):
         
     def initialize_parameters(self, state):
         """Initialize parameters based on the input state."""
-        return None
-
+        pass
+    
     @abc.abstractmethod
     def forward(
         self,

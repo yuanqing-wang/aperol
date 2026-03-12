@@ -23,6 +23,7 @@ class VelocityNormToNode(Module):
         
     def initialize_parameters(self, state):
         self.weight.materialize((state.velocity.shape[-1], state.node.shape[-1]))
+        torch.nn.init.xavier_uniform_(self.weight)
     
     def forward(self, state: State) -> State:
         norm = torch.norm(state.velocity, dim=-2)  # (N, Dv)

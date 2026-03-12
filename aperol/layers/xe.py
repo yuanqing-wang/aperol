@@ -172,6 +172,8 @@ class Smearing(Module):
     def initialize_parameters(self, state):
         self.weight_in.materialize((state.edge.shape[-1], self.num_basis))
         self.weight_out.materialize((self.num_basis * state.position.shape[-1], state.edge.shape[-1]))
+        torch.nn.init.xavier_uniform_(self.weight_in)
+        torch.nn.init.xavier_uniform_(self.weight_out)
         
     def forward(self, state: State) -> State:
         filter = state.edge @ self.weight_in  # (N, N, num_basis)
@@ -224,24 +226,29 @@ class SpatialAttention(Module):
     >>> from ..test_utils import get_random_state, get_simple_endomorphism
     >>> state = get_random_state()
     >>> endomorphism = get_simple_endomorphism()
-    >>> sa = SpatialAttention(features=8, endomorphism=endomorphism)
+    >>> sa = SpatialAttention(endomorphism=endomorphism)
     >>> new_state = sa(state)
     >>> assert new_state.edge.shape == state.edge.shape
     """
-    def __init__(self, features: int, endomorphism: Endomorphism):
+    def __init__(self, endomorphism: Endomorphism):
         super().__init__()
-        self.k = torch.nn.LazyLinear(out_features=features)
-        self.q = torch.nn.LazyLinear(out_features=features)
+        self.k = torch.nn.UninitializedParameter()
+        self.q = torch.nn.UninitializedParameter()
         self.weight = torch.nn.UninitializedParameter()
-        self.features = features
         self.endomorphism = endomorphism
         
     def initialize_parameters(self, state):
-        self.weight.materialize((self.features, state.edge.shape[-1]))
+        self.k.materialize((state.position.shape[-1], state.edge.shape[-1]))
+        self.q.materialize((state.position.shape[-1], state.edge.shape[-1]))
+        self.weight.materialize((state.edge.shape[-1], state.edge.shape[-1]))
+        torch.nn.init.xavier_uniform_(self.k)
+        torch.nn.init.xavier_uniform_(self.q)
+        torch.nn.init.xavier_uniform_(self.weight)
+        
         
     def forward(self, state: State) -> State:
         delta_x = get_delta_x(state.position)  # (N, N, 3, Dx)
-        k, q = self.k(delta_x), self.q(delta_x)  # (N, N, 3, D_combination)
+        k, q = delta_x @ self.k, delta_x @ self.q  # (N, N, 3, D_combination)
         att = torch.einsum("...ab,...ab->...b", k, q)  # (N, N, D_combination)
         new_edge = state.edge + self.endomorphism(att @ self.weight)  # (N, N, De)
         state = state.replace(edge=new_edge)

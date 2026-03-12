@@ -24,6 +24,7 @@ class NodeToVelocityDamping(Module):
         
     def initialize_parameters(self, state):
         self.weight.materialize((state.node.shape[-1], state.velocity.shape[-1]))
+        torch.nn.init.xavier_uniform_(self.weight)
         
     def forward(self, state: State) -> State:
         damping_factor = 2 * torch.tanh(self.endomorphism(state.node @ self.weight))  # (N, Dv)

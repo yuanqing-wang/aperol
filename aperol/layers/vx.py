@@ -20,6 +20,7 @@ class VelocityToPositionProjection(Module):
     
     def initialize_parameters(self, state):
         self.weight.materialize((state.velocity.shape[-1], state.position.shape[-1]))
+        torch.nn.init.xavier_uniform_(self.weight)
     
     def forward(self, state: State) -> State:
         new_position = state.position + state.velocity @ self.weight

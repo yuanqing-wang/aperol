@@ -24,6 +24,7 @@ class VelocityDotToEdge(Module):
         
     def initialize_parameters(self, state):
         self.weight.materialize((state.velocity.shape[-1], state.edge.shape[-1]))
+        torch.nn.init.xavier_uniform_(self.weight)
         
     def forward(self, state: State) -> State:
         vv = torch.einsum("ntd,mtd->mnd", state.velocity, state.velocity)  # (N, N, Dv)

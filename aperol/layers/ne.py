@@ -24,6 +24,7 @@ class NodeToEdgeBroadcast(Module):
         
     def initialize_parameters(self, state):
         self.weight.materialize((state.node.shape[-1], state.edge.shape[-1]))
+        torch.nn.init.xavier_uniform_(self.weight)
         
     def forward(self, state: State) -> State:
         new_edge = state.edge + self.endomorphism(state.node @ self.weight)  # (N, N, De)

@@ -54,6 +54,8 @@ class LazySquareLinear(Endomorphism):
     def initialize_parameters(self, x):
         self.weight.materialize((x.shape[-1], x.shape[-1]))
         self.bias.materialize((x.shape[-1],))
+        torch.nn.init.xavier_uniform_(self.weight)
+        torch.nn.init.zeros_(self.bias)
         
     def forward(self, x):
         return x @ self.weight + self.bias
@@ -76,6 +78,8 @@ class LazyLayerNorm(Endomorphism):
     def initialize_parameters(self, x):
         self.weight.materialize((x.shape[-1],))
         self.bias.materialize((x.shape[-1],))
+        torch.nn.init.ones_(self.weight)
+        torch.nn.init.zeros_(self.bias)
         
     def forward(self, x):
         return torch.nn.functional.layer_norm(
@@ -105,6 +109,9 @@ class LazySelfAttention(Endomorphism):
         self.K.materialize((x.shape[-1], x.shape[-1]))
         self.Q.materialize((x.shape[-1], x.shape[-1]))
         self.V.materialize((x.shape[-1], x.shape[-1]))
+        torch.nn.init.xavier_uniform_(self.K)
+        torch.nn.init.xavier_uniform_(self.Q)
+        torch.nn.init.xavier_uniform_(self.V)
         
     def forward(self, x):
         K = x @ self.K
