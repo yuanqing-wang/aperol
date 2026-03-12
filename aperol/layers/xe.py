@@ -2,6 +2,7 @@ from functools import partialmethod
 import math
 from turtle import forward
 from typing import Callable 
+from aperol.endomorphism import Endomorphism
 import torch
 from ..module import Module
 from ..state import State
@@ -220,24 +221,20 @@ class SpatialAttention(Module):
     Examples
     --------
     >>> import torch
-    >>> from ..test_utils import get_random_state
+    >>> from ..test_utils import get_random_state, get_simple_endomorphism
     >>> state = get_random_state()
-    >>> sa = SpatialAttention(features=8)
+    >>> endomorphism = get_simple_endomorphism()
+    >>> sa = SpatialAttention(features=8, endomorphism=endomorphism)
     >>> new_state = sa(state)
     >>> assert new_state.edge.shape == state.edge.shape
     """
-    def __init__(self, features: int):
+    def __init__(self, features: int, endomorphism: Endomorphism):
         super().__init__()
         self.k = torch.nn.LazyLinear(out_features=features)
         self.q = torch.nn.LazyLinear(out_features=features)
-        self.layers = torch.nn.Sequential(
-            torch.nn.Linear(features, features),
-            torch.nn.SiLU(),
-            torch.nn.Linear(features, features),
-            torch.nn.SiLU(),
-        )
         self.weight = torch.nn.UninitializedParameter()
         self.features = features
+        self.endomorphism = endomorphism
         
     def initialize_parameters(self, state):
         self.weight.materialize((self.features, state.edge.shape[-1]))
@@ -246,7 +243,7 @@ class SpatialAttention(Module):
         delta_x = get_delta_x(state.position)  # (N, N, 3, Dx)
         k, q = self.k(delta_x), self.q(delta_x)  # (N, N, 3, D_combination)
         att = torch.einsum("...ab,...ab->...b", k, q)  # (N, N, D_combination)
-        att = self.layers(att) @ self.weight  # (N, N, D_combination)
-        state = state.replace(edge=state.edge + att)
+        new_edge = state.edge + self.endomorphism(att @ self.weight)  # (N, N, De)
+        state = state.replace(edge=new_edge)
         return state
         

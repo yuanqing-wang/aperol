@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 from ..module import Module
 from ..state import State
@@ -21,11 +23,17 @@ class VelocityProjection(Module):
     """
     def __init__(
         self,
-        features: int,
+        features: Optional[int] = None,
     ):
         super().__init__()
-        self.linear = torch.nn.LazyLinear(features, bias=False)
+        self.weight = torch.nn.UninitializedParameter()
+        self.features = features
+        
+    def initialize_parameters(self, state):
+        in_features = state.velocity.shape[-1]
+        out_features = self.features if self.features is not None else in_features
+        self.weight.materialize((in_features, out_features))
     
     def forward(self, state: State) -> State:
-        new_velocity = self.linear(state.velocity)
+        new_velocity = state.velocity @ self.weight
         return state.replace(velocity=new_velocity)

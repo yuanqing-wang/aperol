@@ -1,5 +1,6 @@
 import torch
 from .state import State
+from . import endomorphism
 MAX_NODES = 10
 MAX_FEATURES = 16
 
@@ -16,3 +17,13 @@ def get_random_state():
         velocity=torch.randn(N, 3, Dv),
     )
     return state
+
+def get_simple_endomorphism():
+    return torch.nn.Sequential(
+        endomorphism.LazySquareLinear(),
+        endomorphism.LazyLayerNorm(),
+        torch.nn.SiLU(),
+        endomorphism.LazySquareLinear(),
+        endomorphism.LazyLayerNorm(),
+        torch.nn.SiLU(),
+    )
