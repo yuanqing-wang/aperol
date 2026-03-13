@@ -21,9 +21,9 @@ def get_random_state():
 def get_simple_endomorphism():
     return torch.nn.Sequential(
         endomorphism.LazySquareLinear(),
-        # endomorphism.LazyLayerNorm(),
-        # torch.nn.SiLU(),
-        # endomorphism.LazySquareLinear(),
-        # endomorphism.LazyLayerNorm(),
-        # torch.nn.SiLU(),
+        endomorphism.LazyLayerNorm(),
+        torch.nn.SiLU(),
+        endomorphism.LazySquareLinear(),
+        endomorphism.LazyLayerNorm(),
+        torch.nn.SiLU(),
     )

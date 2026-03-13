@@ -187,7 +187,7 @@ class Smearing(Module):
         return state.replace(edge=new_edge)
     
     
-class RBFSmearing(Smearing):
+class PositionToEdgeRBFSmearing(Smearing):
     """ Smearing layer using radial basis function (RBF) kernel.
     
     Examples
@@ -202,7 +202,7 @@ class RBFSmearing(Smearing):
     """
     __init__ = partialmethod(Smearing.__init__, rbf)
 
-class ERBFSmearing(Smearing):
+class PositionToEdgeERBFSmearing(Smearing):
     """ Smearing layer using exponential radial basis function (ERBF) kernel.
 
     Examples
@@ -217,7 +217,7 @@ class ERBFSmearing(Smearing):
     """
     __init__ = partialmethod(Smearing.__init__, erbf)
 
-class SpatialAttention(Module):
+class PositionToEdgeSpatialAttention(Module):
     """ Spatial attention layer.
 
     Examples

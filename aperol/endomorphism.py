@@ -36,6 +36,7 @@ class EdgeEndomorphism(FieldEndomorphism):
 # common endomorphisms
 # =============================================================================
 
+
 class LazySquareLinear(Endomorphism):
     """ Lazy linear layer, where the input feature equals output.
     

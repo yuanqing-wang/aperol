@@ -1,106 +1,142 @@
 import torch
-import os
-import numpy as np
-import torch
-from aperol.models import SuperModel
+from torch.utils.data import DataLoader
+from aperol.data.md17 import load_md17, collate_md17
+from aperol.utils import ProjectionIn, ProjectionOut
+from aperol.module import Module
+from aperol.endomorphism import (
+    Endomorphism,
+    NodeEndomorphism,
+    EdgeEndomorphism,
+    LazySquareLinear,
+    LazyLayerNorm,
+)
+
+from aperol.state import State
+from aperol.layers import (
+    EdgeToNodeAggregation, EdgeToNodeMean, EdgeToNodeMax, AttentionAggregation, EdgeToNodeAttention,
+    NodeToEdgeBroadcast,
+    NodeToVelocityDamping,
+    VelocityDotToEdge,
+    VelocityNormToNode,
+    VelocityProjection,
+    VelocityToPositionProjection,
+    PositionToEdgeRBFSmearing, PositionToEdgeERBFSmearing, PositionToEdgeSpatialAttention,
+    PositionToVelocityKick,
+)
+
+FeedForward = lambda: Endomorphism(
+    LazySquareLinear(),
+    LazyLayerNorm(),
+    torch.nn.SiLU(),
+    LazySquareLinear(),
+    LazyLayerNorm(),
+    torch.nn.Tanh(),
+)
 
 def run(args):
-    data = np.load("%s_dft.npz" % args.data)
-    np.random.seed(2666)
-    idxs = np.random.permutation(len(data['R']))
-    x = data['R'][idxs]
-    e = data['E'][idxs]
-    i = data['z']
-    f = data['F'][idxs]
-    e = (e - e.mean()) / e.std()
-
-    i = torch.nn.functional.one_hot(torch.tensor(i).type(torch.int64)).float()[None, :, :]
-    x = torch.tensor(x).float()
-    e = torch.tensor(e).float()
-    f = torch.tensor(f).float()
-
-    e_mean = e.mean()
-    e_std = e.std()
-
-    n_tr = args.n_tr
-    n_vl = args.n_vl
-    batch_size = args.batch_size
-
-    if n_vl == 0:
-        n_vl = n_tr
-
-    i = i.repeat(batch_size, 1, 1)
-
-    x_tr = x[:n_tr]
-    e_tr = e[:n_tr]
-    f_tr = f[:n_tr]
-
-    x_vl = x[n_tr:n_tr+n_vl]
-    e_vl = e[n_tr:n_tr+n_vl]
-    f_vl = f[n_tr:n_tr+n_vl]
-
-    x_te = x[n_tr+n_vl:]
-    e_te = e[n_tr+n_vl:]
-    f_te = f[n_tr+n_vl:]
-
-    model = SuperModel(i.shape[-1], 1)
-
-    if torch.cuda.is_available():
-        model = model.cuda()
-
-        x_tr = x_tr.cuda()
-        e_tr = e_tr.cuda()
-        f_tr = f_tr.cuda()
-
-        x_vl = x_vl.cuda()
-        e_vl = e_vl.cuda()
-        f_vl = f_vl.cuda()
-
-        x_te = x_te.cuda()
-        e_te = e_te.cuda()
-        f_te = f_te.cuda()
-        i = i.cuda()
-
-    
-    x_tr.requires_grad = True
-    x_vl.requires_grad = True
-    x_te.requires_grad = True
-    optimizer = torch.optim.Adam(
-            model.parameters(),
-            args.learning_rate, weight_decay=args.weight_decay,
+    train, _, _ = load_md17(
+        args.data,
+        n_tr=args.n_tr,
+        n_vl=args.n_vl,
     )
 
-    for idx_epoch in range(int(args.n_epoch)):
-        model.train()
-        idxs = torch.randperm(n_tr)
-        for idx_batch in range(int(n_tr / batch_size)):
-            _x_tr = x_tr[idxs[idx_batch*batch_size:(idx_batch+1)*batch_size]]
-            _e_tr = e_tr[idxs[idx_batch*batch_size:(idx_batch+1)*batch_size]]
-            _f_tr = f_tr[idxs[idx_batch*batch_size:(idx_batch+1)*batch_size]]
+    train_loader = DataLoader(train, batch_size=args.batch_size, shuffle=True, collate_fn=collate_md17)
+    
+    class Layer(Module):
+        def __init__(self, FeedForward: type):
+            super().__init__()
+            self.node_endomorphism                = NodeEndomorphism(FeedForward())
+            self.node_to_edge_broadcast           = NodeToEdgeBroadcast(FeedForward())
+            self.edge_endomorphism                = EdgeEndomorphism(FeedForward())
+            self.velocity_projection              = VelocityProjection()
+            self.velocity_dot_to_edge             = VelocityDotToEdge(FeedForward())
+            self.position_to_edge_erbf_smearing   = PositionToEdgeERBFSmearing()
+            self.position_to_edge_spatial_attention = PositionToEdgeSpatialAttention(FeedForward())
+            self.edge_to_node_attention           = EdgeToNodeAttention()
+            self.node_to_velocity_damping         = NodeToVelocityDamping(FeedForward())
+            self.position_to_velocity_kick        = PositionToVelocityKick()
+            self.velocity_to_position_projection  = VelocityToPositionProjection()
 
-            optimizer.zero_grad()
 
-            e_tr_pred, _ = model(i, _x_tr)
-            e_tr_pred = e_tr_pred.sum(dim=1)
+        def forward(self, state: State) -> State:
+            state = self.node_endomorphism(state)
+            state = self.node_to_edge_broadcast(state)
+            state = self.edge_endomorphism(state)
+            state = self.velocity_projection(state)
+            state = self.velocity_dot_to_edge(state)
+            state = self.position_to_edge_erbf_smearing(state)
+            state = self.position_to_edge_spatial_attention(state)
+            state = self.edge_to_node_attention(state)
+            state = self.node_to_velocity_damping(state)
+            state = self.position_to_velocity_kick(state)
+            state = self.velocity_to_position_projection(state)
+            return state
+    
+    
+    class Model(Module):
+        def __init__(
+            self,
+            node_features: int = args.node_features,
+            edge_features: int = args.edge_features,
+            position_features: int = args.position_features,
+            velocity_features: int = args.velocity_features,
+            depth: int = args.depth,
+        ):
+            super().__init__()
+            self.projection_in = ProjectionIn(
+                node_features=node_features,
+                edge_features=edge_features,
+                position_features=position_features,
+                velocity_features=velocity_features,
+            )
+            
+            self.layers = torch.nn.Sequential(*[Layer(FeedForward) for _ in range(depth)])
+            self.projection_out = ProjectionOut()
 
-            f_tr_pred = torch.autograd.grad(
-                -1.0 * e_tr_pred.sum(),
-                _x_tr,
-                create_graph=True,
-                allow_unused=True,
-            )[0]
+        def forward(self, sample):
+            state = self.projection_in(sample)
+            state = self.layers(state)
+            energy = self.projection_out(state)
+            return energy
+        
+    class Loss(torch.nn.Module):
+        def __init__(
+            self,
+            energy_weight: float = args.energy_weight,
+            force_weight: float = args.force_weight,
+        ):
+            super().__init__()
+            self.energy_weight = energy_weight
+            self.force_weight = force_weight
 
-            if f_tr_pred is None:
-                continue
+        def forward(
+            self,
+            energy_predicted: torch.Tensor,
+            force_predicted: torch.Tensor,
+            sample: torch.Tensor,
+        ):
+            energy_true = sample.energy
+            force_true = sample.force
+            energy_loss = torch.nn.functional.mse_loss(energy_predicted, energy_true)
+            force_loss = torch.nn.functional.mse_loss(force_predicted, force_true)
+            return self.energy_weight * energy_loss + self.force_weight * force_loss
+        
+    model = Model()
+    loss = Loss()
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=args.learning_rate,
+        weight_decay=args.weight_decay,
+    )
 
-            loss = torch.nn.L1Loss()(_f_tr, f_tr_pred) + 0.001 * torch.nn.L1Loss()(_e_tr, e_tr_pred)
-            loss.backward()
-            if idx_batch == 0:
-                print(idx_epoch, loss, flush=True)
-            for parameter in model.parameters():
-                if parameter.grad is not None:
-                    parameter.grad.nan_to_num_(0.0)
-            optimizer.step()
+    
+            
+        
+        
+            
+
+
+
 
 if __name__ == "__main__":
     import argparse
