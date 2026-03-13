@@ -26,7 +26,7 @@ class MD17Dataset(Dataset):
         F = data["F"][perm]   # (n_samples, n_atoms, 3)
         z = data["z"]         # (n_atoms,)  atomic numbers, constant across frames
 
-        # normalise energy to zero mean / unit std
+        # normalize energy to zero mean / unit std
         E = (E - E.mean()) / E.std()
 
         if indices is not None:
