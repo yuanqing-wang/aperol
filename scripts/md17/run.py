@@ -24,14 +24,14 @@ from aperol.layers import (
     PositionToVelocityKick,
 )
 
-FeedForward = lambda: Endomorphism(
-    LazySquareLinear(),
-    LazyLayerNorm(),
-    torch.nn.SiLU(),
-    LazySquareLinear(),
-    LazyLayerNorm(),
-    torch.nn.Tanh(),
-)
+FeedForward = lambda: torch.nn.Sequential(
+        LazySquareLinear(),
+        LazyLayerNorm(),
+        torch.nn.SiLU(),
+        LazySquareLinear(),
+        LazyLayerNorm(),
+        torch.nn.Tanh(),
+    )
 
 def run(args):
     train, _, _ = load_md17(
@@ -52,7 +52,7 @@ def run(args):
             self.velocity_dot_to_edge             = VelocityDotToEdge(FeedForward())
             self.position_to_edge_erbf_smearing   = PositionToEdgeERBFSmearing()
             self.position_to_edge_spatial_attention = PositionToEdgeSpatialAttention(FeedForward())
-            self.edge_to_node_attention           = EdgeToNodeAttention()
+            self.edge_to_node_attention           = EdgeToNodeAttention(FeedForward())
             self.node_to_velocity_damping         = NodeToVelocityDamping(FeedForward())
             self.position_to_velocity_kick        = PositionToVelocityKick()
             self.velocity_to_position_projection  = VelocityToPositionProjection()
@@ -95,6 +95,7 @@ def run(args):
 
         def forward(self, sample):
             state = self.projection_in(sample)
+            import pdb; pdb.set_trace()
             state = self.layers(state)
             energy = self.projection_out(state)
             return energy
@@ -122,18 +123,30 @@ def run(args):
             return self.energy_weight * energy_loss + self.force_weight * force_loss
         
     model = Model()
-    loss = Loss()
+    loss_fn = Loss()
     optimizer = torch.optim.Adam(
         model.parameters(),
         lr=args.learning_rate,
         weight_decay=args.weight_decay,
     )
 
-    
-            
-        
-        
-            
+    for epoch in range(args.n_epoch):
+        for sample in train_loader:
+            sample.position.requires_grad_(True)
+
+            energy = model(sample)
+            force = -torch.autograd.grad(
+                energy.sum(),
+                sample.position,
+                create_graph=True,
+            )[0]
+
+            l = loss_fn(energy, force, sample)
+            optimizer.zero_grad()
+            l.backward()
+            optimizer.step()
+
+        print(f"epoch {epoch:>6d} | loss {l.item():.6f}")
 
 
 
@@ -148,5 +161,12 @@ if __name__ == "__main__":
     parser.add_argument("--n_epoch", type=int, default=100000)
     parser.add_argument("--learning_rate", type=float, default=1e-5)
     parser.add_argument("--weight_decay", type=float, default=1e-10)
+    parser.add_argument("--node_features", type=int, default=128)
+    parser.add_argument("--edge_features", type=int, default=128)
+    parser.add_argument("--position_features", type=int, default=32)
+    parser.add_argument("--velocity_features", type=int, default=32)
+    parser.add_argument("--depth", type=int, default=4)
+    parser.add_argument("--energy_weight", type=float, default=0.01)
+    parser.add_argument("--force_weight", type=float, default=0.99)
     args = parser.parse_args()
     run(args)

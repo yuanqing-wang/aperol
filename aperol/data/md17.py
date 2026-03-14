@@ -99,7 +99,7 @@ class MD17Dataset(Dataset):
 
     # ------------------------------------------------------------------
     def __len__(self):
-        return len(self.energies)
+        return len(self.energy)
 
     def __getitem__(self, idx):
         return MD17Sample(
