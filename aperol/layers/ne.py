@@ -27,5 +27,8 @@ class NodeToEdgeBroadcast(Module):
         torch.nn.init.xavier_uniform_(self.weight)
         
     def forward(self, state: State) -> State:
-        new_edge = state.edge + self.endomorphism(state.node @ self.weight)  # (N, N, De)
+        node_msg = self.endomorphism(state.node @ self.weight)  # (B, N, De)
+        # broadcast receiver features across senders to match (B, N, N, De)
+        node_msg = node_msg.unsqueeze(-3)
+        new_edge = state.edge + node_msg
         return state.replace(edge=new_edge)

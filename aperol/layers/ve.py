@@ -27,6 +27,7 @@ class VelocityDotToEdge(Module):
         torch.nn.init.xavier_uniform_(self.weight)
         
     def forward(self, state: State) -> State:
-        vv = torch.einsum("ntd,mtd->mnd", state.velocity, state.velocity)  # (N, N, Dv)
-        new_edge = state.edge + self.endomorphism(vv @ self.weight)  # (N, N, De)
+        # pairwise dot over the spatial dimension, keep feature dimension
+        vv = torch.einsum("bntd,bmtd->bmnd", state.velocity, state.velocity)  # (B, N, N, Dv)
+        new_edge = state.edge + self.endomorphism(vv @ self.weight)  # (B, N, N, De)
         return state.replace(edge=new_edge)
