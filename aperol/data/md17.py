@@ -1,4 +1,5 @@
 import os
+import shutil
 import urllib.request
 from dataclasses import dataclass
 from typing import List
@@ -42,11 +43,23 @@ _MOLECULES = {
 def _local_path(molecule: str) -> str:
     return os.path.join(os.path.expanduser("~/.cache/aperol/md17"), f"{molecule}_dft.npz")
 
+def _repo_bundled_path(molecule: str) -> str:
+    """Path to bundled dataset inside the repository (if present)."""
+    here = os.path.abspath(os.path.dirname(__file__))
+    candidate = os.path.abspath(os.path.join(here, "..", "..", f"{molecule}_dft.npz"))
+    return candidate if os.path.exists(candidate) else ""
+
 
 def _download(molecule: str) -> str:
     if molecule not in _MOLECULES:
         raise ValueError(f"Unknown molecule '{molecule}'. Available: {sorted(_MOLECULES)}")
     path = _local_path(molecule)
+    bundled = _repo_bundled_path(molecule)
+    if bundled:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        shutil.copyfile(bundled, path)
+        print(f"Using bundled dataset {bundled} -> {path}")
+        return path
     url = _BASE_URL + f"md17_{molecule}.npz"
     print(f"Downloading {url} -> {path}")
     os.makedirs(os.path.dirname(path), exist_ok=True)

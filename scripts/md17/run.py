@@ -95,7 +95,6 @@ def run(args):
 
         def forward(self, sample):
             state = self.projection_in(sample)
-            import pdb; pdb.set_trace()
             state = self.layers(state)
             energy = self.projection_out(state)
             return energy
