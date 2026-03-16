@@ -27,3 +27,8 @@ def get_simple_endomorphism():
         endomorphism.LazyLayerNorm(),
         torch.nn.SiLU(),
     )
+    
+def get_random_rotation(dimension=3):
+    X = torch.randn(dimension, dimension)
+    Q, R = torch.linalg.qr(X)
+    return Q
