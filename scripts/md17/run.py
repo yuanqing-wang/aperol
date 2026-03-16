@@ -101,30 +101,7 @@ def run(args):
             energy = self.projection_out(state)
             return energy
         
-    class Loss(torch.nn.Module):
-        def __init__(
-            self,
-            energy_weight: float = args.energy_weight,
-            force_weight: float = args.force_weight,
-        ):
-            super().__init__()
-            self.energy_weight = energy_weight
-            self.force_weight = force_weight
-
-        def forward(
-            self,
-            energy_predicted: torch.Tensor,
-            force_predicted: torch.Tensor,
-            sample: torch.Tensor,
-        ):
-            energy_true = sample.energy
-            force_true = sample.force
-            energy_loss = torch.nn.functional.mse_loss(energy_predicted, energy_true)
-            force_loss = torch.nn.functional.mse_loss(force_predicted, force_true)
-            return self.energy_weight * energy_loss + self.force_weight * force_loss
-        
     model = Model()
-    loss_fn = Loss()
     optimizer = torch.optim.Adam(
         model.parameters(),
         lr=args.learning_rate,
@@ -141,10 +118,14 @@ def run(args):
                 sample.position,
                 create_graph=True,
             )[0]
+            
+            energy_error = torch.nn.functional.mse_loss(energy, sample.energy)
+            force_error = torch.nn.functional.mse_loss(force, sample.force)
 
-            l = loss_fn(energy, force, sample)
+            loss = args.energy_weight * energy_error + args.force_weight * force_error
+            
             optimizer.zero_grad()
-            l.backward()
+            loss.backward()
             optimizer.step()
 
             # Validation loss on a single (cycling) batch each train step.
@@ -161,10 +142,15 @@ def run(args):
                 val_sample.position,
                 create_graph=False,
             )[0]
-            val_l = loss_fn(val_energy, val_force, val_sample)
+            val_energy_mse = torch.nn.functional.mse_loss(val_energy, val_sample.energy)
+            val_force_mse = torch.nn.functional.mse_loss(val_force, val_sample.force)
             model.train()
 
-            print(f"epoch {epoch:>6d} | loss {l.item():.6f} | val {val_l.item():.6f}")
+            print(
+                f"epoch {epoch:>2d} | loss {loss.item():.2f} | "
+                f"energy error {energy_error.item():.2f} | force error {force_error.item():.2f} | "
+                f"val_e {val_energy_mse.item():.2f} | val_f {val_force_mse.item():.2f}"
+            )
 
 
 
