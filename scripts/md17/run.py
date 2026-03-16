@@ -34,13 +34,15 @@ FeedForward = lambda: torch.nn.Sequential(
     )
 
 def run(args):
-    train, _, _ = load_md17(
+    train, val, _ = load_md17(
         args.data,
         n_tr=args.n_tr,
         n_vl=args.n_vl,
     )
 
     train_loader = DataLoader(train, batch_size=args.batch_size, shuffle=True, collate_fn=collate_md17)
+    val_loader = DataLoader(val, batch_size=args.batch_size, shuffle=False, collate_fn=collate_md17)
+    val_iter = iter(val_loader)
     
     class Layer(Module):
         def __init__(self, FeedForward: type):
@@ -145,7 +147,24 @@ def run(args):
             l.backward()
             optimizer.step()
 
-        print(f"epoch {epoch:>6d} | loss {l.item():.6f}")
+            # Validation loss on a single (cycling) batch each train step.
+            model.eval()
+            try:
+                val_sample = next(val_iter)
+            except StopIteration:
+                val_iter = iter(val_loader)
+                val_sample = next(val_iter)
+            val_sample.position.requires_grad_(True)
+            val_energy = model(val_sample)
+            val_force = -torch.autograd.grad(
+                val_energy.sum(),
+                val_sample.position,
+                create_graph=False,
+            )[0]
+            val_l = loss_fn(val_energy, val_force, val_sample)
+            model.train()
+
+            print(f"epoch {epoch:>6d} | loss {l.item():.6f} | val {val_l.item():.6f}")
 
 
 
@@ -156,15 +175,15 @@ if __name__ == "__main__":
     parser.add_argument("--data", type=str, default="malonaldehyde")
     parser.add_argument("--n_tr", type=int, default=1000)
     parser.add_argument("--n_vl", type=int, default=0)
-    parser.add_argument("--batch_size", type=int, default=128)
+    parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--n_epoch", type=int, default=100000)
     parser.add_argument("--learning_rate", type=float, default=1e-5)
     parser.add_argument("--weight_decay", type=float, default=1e-10)
-    parser.add_argument("--node_features", type=int, default=128)
-    parser.add_argument("--edge_features", type=int, default=128)
-    parser.add_argument("--position_features", type=int, default=32)
-    parser.add_argument("--velocity_features", type=int, default=32)
-    parser.add_argument("--depth", type=int, default=4)
+    parser.add_argument("--node_features", type=int, default=16)
+    parser.add_argument("--edge_features", type=int, default=16)
+    parser.add_argument("--position_features", type=int, default=8)
+    parser.add_argument("--velocity_features", type=int, default=8)
+    parser.add_argument("--depth", type=int, default=2)
     parser.add_argument("--energy_weight", type=float, default=0.01)
     parser.add_argument("--force_weight", type=float, default=0.99)
     args = parser.parse_args()

@@ -53,7 +53,19 @@ def get_distance(x):
     torch.Size([5, 5, 1, 8])
     """
     delta_x = get_delta_x(x)
-    norm = torch.linalg.norm(delta_x, dim=-2, keepdims=True)
+    # `torch.linalg.norm` has a gradient `delta_x / ||delta_x||`. For the
+    # diagonal (i == j), `delta_x` is exactly 0, which can yield 0/0 -> NaN
+    # in force computation via autograd. Use a numerically safe sqrt and then
+    # explicitly zero the diagonal so self-interactions stay excluded.
+    eps = 1e-12
+    norm = torch.sqrt((delta_x * delta_x).sum(dim=-2, keepdim=True) + eps)
+
+    n = norm.shape[-4]
+    prefix_dims = norm.dim() - 4  # (..., n, n, 1, Dx)
+    eye = torch.eye(n, device=norm.device, dtype=norm.dtype).view(
+        *([1] * prefix_dims), n, n, 1, 1
+    )
+    norm = norm * (1.0 - eye)
     return norm
 
 def cosine_cutoff(x, lower=CUTOFF_LOWER, upper=CUTOFF_UPPER):
