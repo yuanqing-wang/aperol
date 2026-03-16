@@ -32,3 +32,15 @@ def get_random_rotation(dimension=3):
     X = torch.randn(dimension, dimension)
     Q, R = torch.linalg.qr(X)
     return Q
+
+def rotate_state(state: State, R: torch.Tensor) -> State:
+    # Rotate positions and velocities
+    position = torch.einsum("ij,njk,dk->nki", R, state.position, R.T)
+    velocity = torch.einsum("ij,njk,dk->nki", R, state.velocity, R.T)
+    return State(
+        node=state.node,
+        edge=state.edge,
+        position=position,
+        velocity=velocity,
+    )
+    
