@@ -97,6 +97,8 @@ class EdgeToNodeAttention(EdgeToNodeAggregation):
     >>> new_state = att_agg(state)
     >>> assert new_state.node.shape == state.node.shape
     """
-    __init__ = partialmethod(EdgeToNodeAggregation.__init__, aggregator=AttentionAggregation())
+    def __init__(self, endomorphism: Endomorphism):
+        # Don't share a single AttentionAggregation instance across all layers.
+        super().__init__(endomorphism=endomorphism, aggregator=AttentionAggregation())
         
         

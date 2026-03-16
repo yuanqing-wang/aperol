@@ -28,6 +28,9 @@ class VelocityDotToEdge(Module):
         
     def forward(self, state: State) -> State:
         # pairwise dot over the spatial dimension, keep feature dimension
-        vv = torch.einsum("bntd,bmtd->bmnd", state.velocity, state.velocity)  # (B, N, N, Dv)
+        # Accept both batched and unbatched velocity tensors:
+        # batched:   (B, N, 3, Dv) -> (B, N, N, Dv)
+        # unbatched: (N, 3, Dv)    -> (N, N, Dv)
+        vv = torch.einsum("...ntd,...mtd->...mnd", state.velocity, state.velocity)
         new_edge = state.edge + self.endomorphism(vv @ self.weight)  # (B, N, N, De)
         return state.replace(edge=new_edge)
