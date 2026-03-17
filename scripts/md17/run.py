@@ -101,6 +101,10 @@ def run(args):
             energy = self.projection_out(state)
             return energy
         
+    # test rotational equivariance
+    from aperol.tests.test_rotational_equivariance import check_layer
+    check_layer(Model())
+        
     model = Model()
     optimizer = torch.optim.Adam(
         model.parameters(),
@@ -151,9 +155,6 @@ def run(args):
                 f"energy error {energy_error.item():.2f} | force error {force_error.item():.2f} | "
                 f"val_e {val_energy_mse.item():.2f} | val_f {val_force_mse.item():.2f}"
             )
-
-
-
 
 if __name__ == "__main__":
     import argparse

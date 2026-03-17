@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 from .state import State
 from . import endomorphism
@@ -70,12 +72,16 @@ def _assert_allclose(a: torch.Tensor, b: torch.Tensor, *, name: str, atol: float
 def check_layer(
     layer: torch.nn.Module,
     *,
-    name: str,
-    state: State,
-    r: torch.Tensor,
-    atol: float,
-    rtol: float,
+    name: str = "Layer",
+    state: Optional[State] = None,
+    r: Optional[torch.Tensor] = None,
+    atol: float = 1e-3,
+    rtol: float = 1e-3,
 ):
+    if r is None:
+        r = get_random_rotation_matrix()
+    if state is None:
+        state = get_random_state()
     state_r = rotate_state(state, r)
 
     out = layer(state)
