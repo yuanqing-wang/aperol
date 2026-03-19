@@ -1,3 +1,4 @@
+import os
 import torch
 from torch.utils.data import DataLoader
 from aperol.data.md17 import load_md17, collate_md17
@@ -112,7 +113,15 @@ def run(args):
         weight_decay=args.weight_decay,
     )
 
-    for epoch in range(args.n_epoch):
+    start_epoch = 0
+    if args.checkpoint and os.path.exists(args.checkpoint):
+        ckpt = torch.load(args.checkpoint)
+        model = ckpt["model"]
+        optimizer = ckpt["optimizer"]
+        start_epoch = ckpt["epoch"] + 1
+        print(f"Resumed from {args.checkpoint} (epoch {start_epoch})")
+
+    for epoch in range(start_epoch, args.n_epoch):
         for sample in train_loader:
             sample.position.requires_grad_(True)
 
@@ -156,6 +165,9 @@ def run(args):
                 f"val_e {val_energy_mse.item():.2f} | val_f {val_force_mse.item():.2f}"
             )
 
+        if args.checkpoint:
+            torch.save({"model": model, "optimizer": optimizer, "epoch": epoch}, args.checkpoint)
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
@@ -173,5 +185,6 @@ if __name__ == "__main__":
     parser.add_argument("--depth", type=int, default=2)
     parser.add_argument("--energy_weight", type=float, default=0.01)
     parser.add_argument("--force_weight", type=float, default=0.99)
+    parser.add_argument("--checkpoint",   type=str,   default=None)
     args = parser.parse_args()
     run(args)
