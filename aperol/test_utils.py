@@ -2,6 +2,7 @@ from typing import Optional
 
 import torch
 from .state import State
+from .data.md17 import MD17Sample
 from . import endomorphism
 MAX_NODES = 10
 MAX_FEATURES = 16
@@ -67,6 +68,50 @@ def _assert_allclose(a: torch.Tensor, b: torch.Tensor, *, name: str, atol: float
             f"{name} not close: max_abs={diff.max().item():.3e} "
             f"mean_abs={diff.mean().item():.3e} shape={tuple(a.shape)}"
         )
+
+
+def get_random_sample(n_atoms: int = 5, n_atom_types: int = 4) -> MD17Sample:
+    return MD17Sample(
+        position=torch.randn(n_atoms, 3),
+        energy=torch.randn(1).squeeze(),
+        force=torch.randn(n_atoms, 3),
+        atom_type=torch.nn.functional.one_hot(
+            torch.randint(n_atom_types, (n_atoms,)), n_atom_types
+        ).float(),
+    )
+
+
+def rotate_sample(sample: MD17Sample, r: torch.Tensor) -> MD17Sample:
+    """Rotate position (and force) in an MD17Sample by r (3x3)."""
+    return MD17Sample(
+        position=sample.position @ r.T,
+        energy=sample.energy,
+        force=sample.force @ r.T,
+        atom_type=sample.atom_type,
+    )
+
+
+def check_model(
+    model: torch.nn.Module,
+    *,
+    name: str = "Model",
+    sample: Optional[MD17Sample] = None,
+    r: Optional[torch.Tensor] = None,
+    atol: float = 1e-3,
+    rtol: float = 1e-3,
+):
+    if r is None:
+        r = get_random_rotation_matrix()
+    if sample is None:
+        sample = get_random_sample()
+    sample_r = rotate_sample(sample, r)
+
+    with torch.no_grad():
+        energy = model(sample)
+        energy_r = model(sample_r)
+
+    # Energy is a scalar — must be rotation-invariant.
+    _assert_allclose(energy, energy_r, name=f"{name}.energy", atol=atol, rtol=rtol)
 
 
 def check_layer(

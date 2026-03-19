@@ -102,8 +102,8 @@ def run(args):
             return energy
         
     # test rotational equivariance
-    from aperol.tests.test_rotational_equivariance import check_layer
-    check_layer(Model())
+    from aperol.test_utils import check_model
+    check_model(Model())
         
     model = Model()
     optimizer = torch.optim.Adam(
