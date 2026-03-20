@@ -11,8 +11,8 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.tools import tool
 from langchain.agents import create_agent
 
-REPO_ROOT = Path(__file__).resolve().parents[2]   # .../aperol
-SCRIPTS_DIR = Path(__file__).resolve().parent     # .../scripts/md17
+SCRIPTS_DIR = Path.cwd()          # scripts/md17 — where run.sh is submitted from
+REPO_ROOT = SCRIPTS_DIR.parents[1]  # .../aperol
 BASE_SCRIPT = SCRIPTS_DIR / "run.py"
 
 
