@@ -35,8 +35,9 @@ def write_file(path: str, content: str) -> str:
 @tool
 def run_experiment(n: int) -> str:
     """
-    Run scripts/md17/{n}/run.py in the aperol conda environment with
-    ~/Documents/GitHub/aperol on PYTHONPATH. Returns up to 200 lines of
+    Run {n}/run.py in the aperol conda environment with
+    the root of the current directory on PYTHONPATH. 
+    Returns up to 200 lines of
     stdout+stderr. Times out after 5 minutes.
     """
     script = SCRIPTS_DIR / str(n) / "run.py"
