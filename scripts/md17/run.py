@@ -1,5 +1,7 @@
 import os
+from pathlib import Path
 import torch
+import wandb
 from torch.utils.data import DataLoader
 from aperol.data.md17 import load_md17, collate_md17
 from aperol.utils import ProjectionIn, ProjectionOut
@@ -113,6 +115,9 @@ def run(args):
         weight_decay=args.weight_decay,
     )
 
+    run_name = Path(__file__).parent.name
+    wandb.init(project="aperol-md17", name=run_name, config=vars(args))
+
     start_epoch = 0
     if args.checkpoint and os.path.exists(args.checkpoint):
         ckpt = torch.load(args.checkpoint)
@@ -164,6 +169,15 @@ def run(args):
                 f"energy error {energy_error.item():.2f} | force error {force_error.item():.2f} | "
                 f"val_e {val_energy_mse.item():.2f} | val_f {val_force_mse.item():.2f}"
             )
+            
+            wandb.log({
+                "epoch": epoch,
+                "loss": loss.item(),
+                "energy_error": energy_error.item(),
+                "force_error": force_error.item(),
+                "val_e": val_energy_mse.item(),
+                "val_f": val_force_mse.item(),
+            })
 
         if args.checkpoint:
             torch.save({"model": model, "optimizer": optimizer, "epoch": epoch}, args.checkpoint)
