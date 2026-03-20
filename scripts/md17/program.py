@@ -16,19 +16,27 @@ REPO_ROOT = SCRIPTS_DIR.parents[1]  # .../aperol
 BASE_SCRIPT = SCRIPTS_DIR / "run.py"
 
 
+def _resolve(path: str) -> Path:
+    """Resolve a path: absolute paths pass through; relative paths anchor to SCRIPTS_DIR."""
+    p = Path(path)
+    return p if p.is_absolute() else SCRIPTS_DIR / p
+
+
 @tool
 def read_file(path: str) -> str:
-    """Read and return the contents of a file."""
+    """Read and return the contents of a file. Relative paths are resolved from the
+    scripts/md17 directory (e.g. pass '1/run.py', not 'scripts/md17/1/run.py')."""
     try:
-        return Path(path).read_text()
+        return _resolve(path).read_text()
     except FileNotFoundError:
         return f"Error: file not found: {path}"
 
 
 @tool
 def write_file(path: str, content: str) -> str:
-    """Write content to a file, creating parent directories if needed."""
-    p = Path(path)
+    """Write content to a file, creating parent directories if needed. Relative paths
+    are resolved from the scripts/md17 directory (e.g. pass '1/run.py')."""
+    p = _resolve(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(content)
     return f"Wrote {p}"
@@ -72,7 +80,7 @@ def list_experiments() -> str:
 
 tools = [read_file, write_file, run_experiment, list_experiments]
 
-llm = ChatAnthropic(model="claude-opus-4-6", max_tokens=8192)
+llm = ChatAnthropic(model="claude-haiku-4-5-20251001", max_tokens=8192)
 system = (SCRIPTS_DIR / "program.md").read_text()
 agent = create_agent(llm, tools, system_prompt=system)
 
