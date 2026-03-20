@@ -3,6 +3,8 @@
 
 import os
 import subprocess
+import time
+import collections
 from pathlib import Path
 
 from langchain_anthropic import ChatAnthropic
@@ -74,7 +76,13 @@ llm = ChatAnthropic(model="claude-opus-4-6", max_tokens=8192)
 system = (SCRIPTS_DIR / "program.md").read_text()
 agent = create_agent(llm, tools, system_prompt=system)
 
+# Sliding-window TPM limiter: stay under this many tokens per minute.
+TPM_LIMIT = 20_000
+
 if __name__ == "__main__":
+    # Each entry is (timestamp, token_count) for the last 60 s.
+    token_window: collections.deque = collections.deque()
+
     for chunk in agent.stream({
         "messages": [(
             "user",
@@ -83,3 +91,19 @@ if __name__ == "__main__":
         )]
     }):
         print(chunk)
+        for msg in chunk.get("model", {}).get("messages", []):
+            usage = getattr(msg, "usage_metadata", None)
+            if not usage:
+                continue
+            tokens = usage.get("total_tokens", 0)
+            now = time.monotonic()
+            token_window.append((now, tokens))
+            # Drop entries older than 60 s.
+            while token_window and token_window[0][0] < now - 60:
+                token_window.popleft()
+            used = sum(t for _, t in token_window)
+            print(f"[tokens] last-60s={used}/{TPM_LIMIT}")
+            if used >= TPM_LIMIT:
+                sleep_for = 60 - (now - token_window[0][0]) + 1
+                print(f"[rate limit] sleeping {sleep_for:.1f}s …")
+                time.sleep(sleep_for)
