@@ -164,6 +164,9 @@ def run(args):
             val_force_mse = torch.nn.functional.mse_loss(val_force, val_sample.force)
             model.train()
 
+            if epoch % 10 != 0:
+                continue
+
             print(
                 f"epoch {epoch:>2d} | loss {loss.item():.2f} | "
                 f"energy error {energy_error.item():.2f} | force error {force_error.item():.2f} | "
