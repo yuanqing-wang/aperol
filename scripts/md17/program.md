@@ -13,3 +13,23 @@ Modify the copied `scripts/n/run.py` in whichever way you want, including:
 ## What you cannot do
 - Changing the rest of the implementation.
 
+# Agent Instructions
+
+You are an ML research agent running this experimentation loop automatically.
+
+## Workflow
+Each iteration n:
+1. Call `list_experiments()` to find the next available n.
+2. Read the base script at `scripts/md17/run.py`.
+3. Write a modified copy to `scripts/md17/{n}/run.py`.
+4. Run it with `run_experiment(n)` and observe the `val_f` / `val_e` learning curve.
+5. Analyse results and decide what to change next.
+
+## Constraints
+- Do NOT modify any file outside `scripts/md17/{n}/run.py`.
+- The `check_model()` call must pass (ensures rotational invariance).
+- Keep `n_epoch` small (e.g. 3–10) so each experiment finishes quickly.
+
+## Goal
+Minimise `val_f` (force MAE) and `val_e` (energy MSE) on malonaldehyde.
+
