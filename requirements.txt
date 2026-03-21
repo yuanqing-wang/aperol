@@ -1,0 +1,12 @@
+# aperol package
+torch
+numpy
+
+# md17 training
+wandb
+
+# program.py agent
+langchain>=1.2.10
+langchain-core>=1.2.17
+langchain-ollama>=1.0.1
+langgraph>=1.0.10

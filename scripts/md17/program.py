@@ -3,11 +3,9 @@
 
 import os
 import subprocess
-import time
-import collections
 from pathlib import Path
 
-from langchain_anthropic import ChatAnthropic
+from langchain_ollama import ChatOllama
 from langchain_core.tools import tool
 from langchain.agents import create_agent
 
@@ -46,7 +44,7 @@ def write_file(path: str, content: str) -> str:
 def run_experiment(n: int) -> str:
     """
     Run {n}/run.py in the aperol conda environment with
-    the root of the current directory on PYTHONPATH. 
+    the root of the current directory on PYTHONPATH.
     Returns up to 200 lines of
     stdout+stderr. Times out after 5 minutes.
     """
@@ -80,38 +78,20 @@ def list_experiments() -> str:
 
 tools = [read_file, write_file, run_experiment, list_experiments]
 
-llm = ChatAnthropic(model="claude-haiku-4-5-20251001", max_tokens=8192)
+llm = ChatOllama(
+    model="qwen3-coder",
+    temperature=0.2,
+)
+
 system = (SCRIPTS_DIR / "program.md").read_text()
 agent = create_agent(llm, tools, system_prompt=system)
 
-# Sliding-window TPM limiter: stay under this many tokens per minute.
-TPM_LIMIT = 20_000
-
 if __name__ == "__main__":
-    # Each entry is (timestamp, token_count) for the last 60 s.
-    token_window: collections.deque = collections.deque()
-
     for chunk in agent.stream({
         "messages": [(
-            "user",
+            "human",
             "Start iterating. Keep n_epoch ≤ 10 for fast turnaround. "
             "After each run reflect on the val_f / val_e trend and improve."
         )]
     }):
         print(chunk)
-        for msg in chunk.get("model", {}).get("messages", []):
-            usage = getattr(msg, "usage_metadata", None)
-            if not usage:
-                continue
-            tokens = usage.get("total_tokens", 0)
-            now = time.monotonic()
-            token_window.append((now, tokens))
-            # Drop entries older than 60 s.
-            while token_window and token_window[0][0] < now - 60:
-                token_window.popleft()
-            used = sum(t for _, t in token_window)
-            print(f"[tokens] last-60s={used}/{TPM_LIMIT}")
-            if used >= TPM_LIMIT:
-                sleep_for = 60 - (now - token_window[0][0]) + 1
-                print(f"[rate limit] sleeping {sleep_for:.1f}s …")
-                time.sleep(sleep_for)
