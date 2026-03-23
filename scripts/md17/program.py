@@ -85,24 +85,12 @@ def list_experiments() -> str:
 tools = [read_file, write_file, run_experiment, list_experiments]
 
 llm = ChatOpenRouter(
-    model="qwen/qwen3-coder:free",
+    model="nvidia/nemotron-3-super-120b-a12b:free",
 )
 
-@before_model
-def trim_to_128k(state, _runtime):
-    trimmed = trim_messages(
-        state["messages"],
-        max_tokens=131_072,
-        strategy="last",
-        token_counter="approximate",
-        include_system=True,
-    )
-    trimmed_ids = {m.id for m in trimmed}
-    removals = [RemoveMessage(id=m.id) for m in state["messages"] if m.id not in trimmed_ids]
-    return {"messages": removals} if removals else {}
 
 system = (SCRIPTS_DIR / "program.md").read_text()
-agent = create_agent(llm, tools, system_prompt=system, middleware=[trim_to_128k])
+agent = create_agent(llm, tools, system_prompt=system)
 
 if __name__ == "__main__":
     for chunk in agent.stream({
