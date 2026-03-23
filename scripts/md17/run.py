@@ -27,6 +27,7 @@ from aperol.layers import (
     PositionToVelocityKick,
 )
 
+
 FeedForward = lambda: torch.nn.Sequential(
         LazySquareLinear(),
         LazyLayerNorm(),
@@ -104,11 +105,13 @@ def run(args):
             energy = self.projection_out(state)
             return energy
         
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     # test rotational equivariance
     from aperol.test_utils import check_model
     check_model(Model())
-        
-    model = Model()
+
+    model = Model().to(device)
     optimizer = torch.optim.Adam(
         model.parameters(),
         lr=args.learning_rate,
@@ -119,8 +122,8 @@ def run(args):
     start_epoch = 0
     wandb_run_id = None
     if args.checkpoint and os.path.exists(args.checkpoint):
-        ckpt = torch.load(args.checkpoint)
-        model = ckpt["model"]
+        ckpt = torch.load(args.checkpoint, map_location=device)
+        model = ckpt["model"].to(device)
         optimizer = ckpt["optimizer"]
         start_epoch = ckpt["epoch"] + 1
         wandb_run_id = ckpt.get("wandb_run_id")
@@ -133,6 +136,7 @@ def run(args):
 
     for epoch in range(start_epoch, start_epoch + args.n_epoch):
         for sample in train_loader:
+            sample = sample.cuda() if device.type == "cuda" else sample
             sample.position.requires_grad_(True)
 
             energy = model(sample)
@@ -158,6 +162,7 @@ def run(args):
         except StopIteration:
             val_iter = iter(val_loader)
             val_sample = next(val_iter)
+        val_sample = _to_device(val_sample, device)
         val_sample.position.requires_grad_(True)
         val_energy = model(val_sample)
         val_force = -torch.autograd.grad(

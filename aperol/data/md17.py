@@ -15,6 +15,14 @@ class MD17Sample:
     force:     torch.Tensor  # (n_atoms, 3)  or  (B, n_atoms, 3) when batched
     atom_type: torch.Tensor  # (n_atoms, D)  or  (B, n_atoms, D) when batched
 
+    def cuda(self) -> "MD17Sample":
+        return MD17Sample(
+            position=self.position.cuda(),
+            energy=self.energy.cuda(),
+            force=self.force.cuda(),
+            atom_type=self.atom_type.cuda(),
+        )
+
 
 def collate_md17(samples: List[MD17Sample]) -> MD17Sample:
     return MD17Sample(
