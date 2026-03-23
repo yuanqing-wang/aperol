@@ -132,3 +132,6 @@ dmypy.json
 *.npz
 
 *wandb*
+
+*.checkpoint
+*experiments*
