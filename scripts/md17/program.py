@@ -7,9 +7,7 @@ from pathlib import Path
 
 from langchain_openrouter import ChatOpenRouter
 from langchain_core.tools import tool
-from langchain_core.messages import trim_messages, RemoveMessage
-from langchain.agents import create_agent
-from langchain.agents.middleware import before_model
+from langgraph.prebuilt import create_react_agent
 
 SCRIPTS_DIR = Path.cwd()          # scripts/md17 — where run.sh is submitted from
 REPO_ROOT = SCRIPTS_DIR.parents[1]  # .../aperol
@@ -82,7 +80,18 @@ def list_experiments() -> str:
     return "\n".join(d.name for d in dirs) if dirs else "none"
 
 
-tools = [read_file, write_file, run_experiment, list_experiments]
+@tool
+def read_metrics(n: int) -> str:
+    """Return the per-epoch error log for experiment {n} as JSONL.
+    Each line is a JSON object with keys: epoch, train_energy_error,
+    train_force_error, val_energy_error, val_force_error."""
+    path = EXPERIMENTS_DIR / str(n) / "metrics.jsonl"
+    if not path.exists():
+        return f"No metrics found for experiment {n}."
+    return path.read_text()
+
+
+tools = [read_file, write_file, run_experiment, list_experiments, read_metrics]
 
 llm = ChatOpenRouter(
     model="nvidia/nemotron-3-super-120b-a12b:free",
@@ -90,14 +99,14 @@ llm = ChatOpenRouter(
 
 
 system = (SCRIPTS_DIR / "program.md").read_text()
-agent = create_agent(llm, tools, system_prompt=system)
+agent = create_react_agent(llm, tools, prompt=system)
 
 if __name__ == "__main__":
-    for chunk in agent.stream({
-        "messages": [(
-            "human",
-            "Start iterating."
-            "After each run reflect on the val_f / val_e trend and improve."
-        )]
-    }):
-        print(chunk)
+    for chunk in agent.stream(
+        {"messages": [("human", "Start iterating. After each run reflect on the error trend and improve.")]},
+        stream_mode="updates",
+    ):
+        for node, update in chunk.items():
+            for msg in update.get("messages", []):
+                if hasattr(msg, "content") and msg.content:
+                    print(msg.content)

@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 import torch
@@ -204,6 +205,15 @@ def run(args):
 
         if args.checkpoint:
             torch.save({"model": model, "optimizer": optimizer, "epoch": epoch, "wandb_run_id": wandb.run.id}, args.checkpoint)
+            metrics_path = Path(args.checkpoint).with_name("metrics.jsonl")
+            with open(metrics_path, "a") as f:
+                f.write(json.dumps({
+                    "epoch": epoch,
+                    "train_energy_error": round(energy_error.item(), 6),
+                    "train_force_error": round(force_error.item(), 6),
+                    "val_energy_error": round(val_energy_mse.item(), 6),
+                    "val_force_error": round(val_force_mse.item(), 6),
+                }) + "\n")
 
 if __name__ == "__main__":
     import argparse
