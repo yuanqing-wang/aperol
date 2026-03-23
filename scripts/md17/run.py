@@ -146,41 +146,38 @@ def run(args):
             loss.backward()
             optimizer.step()
 
-            # Validation loss on a single (cycling) batch each train step.
-            model.eval()
-            try:
-                val_sample = next(val_iter)
-            except StopIteration:
-                val_iter = iter(val_loader)
-                val_sample = next(val_iter)
-            val_sample.position.requires_grad_(True)
-            val_energy = model(val_sample)
-            val_force = -torch.autograd.grad(
-                val_energy.sum(),
-                val_sample.position,
-                create_graph=False,
-            )[0]
-            val_energy_mse = torch.nn.functional.mse_loss(val_energy, val_sample.energy)
-            val_force_mse = torch.nn.functional.mse_loss(val_force, val_sample.force)
-            model.train()
+        # Validation loss on a single (cycling) batch each train step.
+        model.eval()
+        try:
+            val_sample = next(val_iter)
+        except StopIteration:
+            val_iter = iter(val_loader)
+            val_sample = next(val_iter)
+        val_sample.position.requires_grad_(True)
+        val_energy = model(val_sample)
+        val_force = -torch.autograd.grad(
+            val_energy.sum(),
+            val_sample.position,
+            create_graph=False,
+        )[0]
+        val_energy_mse = torch.nn.functional.mse_loss(val_energy, val_sample.energy)
+        val_force_mse = torch.nn.functional.mse_loss(val_force, val_sample.force)
+        model.train()
 
-            if epoch % 10 != 0:
-                continue
-
-            print(
-                f"epoch {epoch:>2d} | loss {loss.item():.2f} | "
-                f"energy error {energy_error.item():.2f} | force error {force_error.item():.2f} | "
-                f"val_e {val_energy_mse.item():.2f} | val_f {val_force_mse.item():.2f}"
-            )
-            
-            wandb.log({
-                "epoch": epoch,
-                "loss": loss.item(),
-                "energy_error": energy_error.item(),
-                "force_error": force_error.item(),
-                "val_e": val_energy_mse.item(),
-                "val_f": val_force_mse.item(),
-            })
+        print(
+            f"epoch {epoch:>2d} | loss {loss.item():.2f} | "
+            f"energy error {energy_error.item():.2f} | force error {force_error.item():.2f} | "
+            f"val_e {val_energy_mse.item():.2f} | val_f {val_force_mse.item():.2f}"
+        )
+        
+        wandb.log({
+            "epoch": epoch,
+            "loss": loss.item(),
+            "energy_error": energy_error.item(),
+            "force_error": force_error.item(),
+            "val_e": val_energy_mse.item(),
+            "val_f": val_force_mse.item(),
+        })
 
         if args.checkpoint:
             torch.save({"model": model, "optimizer": optimizer, "epoch": epoch}, args.checkpoint)

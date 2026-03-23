@@ -5,7 +5,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from langchain_ollama import ChatOllama
+from langchain_anthropic import ChatAnthropic
 from langchain_core.tools import tool
 from langchain.agents import create_agent
 
@@ -78,9 +78,8 @@ def list_experiments() -> str:
 
 tools = [read_file, write_file, run_experiment, list_experiments]
 
-llm = ChatOllama(
-    model="qwen3-coder",
-    temperature=0.2,
+llm = ChatAnthropic(
+    model="claude-haiku-4-5-20251001",
 )
 
 system = (SCRIPTS_DIR / "program.md").read_text()
