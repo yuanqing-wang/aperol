@@ -5,13 +5,16 @@ import os
 import subprocess
 from pathlib import Path
 
-from langchain_anthropic import ChatAnthropic
+from langchain_openrouter import ChatOpenRouter
 from langchain_core.tools import tool
+from langchain_core.messages import trim_messages, RemoveMessage
 from langchain.agents import create_agent
+from langchain.agents.middleware import before_model
 
 SCRIPTS_DIR = Path.cwd()          # scripts/md17 — where run.sh is submitted from
 REPO_ROOT = SCRIPTS_DIR.parents[1]  # .../aperol
 BASE_SCRIPT = SCRIPTS_DIR / "run.py"
+EXPERIMENTS_DIR = SCRIPTS_DIR / "experiments"
 
 
 def _resolve(path: str) -> Path:
@@ -23,7 +26,7 @@ def _resolve(path: str) -> Path:
 @tool
 def read_file(path: str) -> str:
     """Read and return the contents of a file. Relative paths are resolved from the
-    scripts/md17 directory (e.g. pass '1/run.py', not 'scripts/md17/1/run.py')."""
+    scripts/md17 directory (e.g. pass 'experiments/1/run.py')."""
     try:
         return _resolve(path).read_text()
     except FileNotFoundError:
@@ -33,7 +36,7 @@ def read_file(path: str) -> str:
 @tool
 def write_file(path: str, content: str) -> str:
     """Write content to a file, creating parent directories if needed. Relative paths
-    are resolved from the scripts/md17 directory (e.g. pass '1/run.py')."""
+    are resolved from the scripts/md17 directory (e.g. pass 'experiments/1/run.py')."""
     p = _resolve(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(content)
@@ -43,16 +46,18 @@ def write_file(path: str, content: str) -> str:
 @tool
 def run_experiment(n: int) -> str:
     """
-    Run {n}/run.py in the aperol conda environment with
-    the root of the current directory on PYTHONPATH.
-    Returns up to 200 lines of
-    stdout+stderr. Times out after 5 minutes.
+    Train experiment {n} for one epoch. Automatically resumes from
+    experiments/{n}/checkpoint.pt if it exists, then saves back to it. Call
+    repeatedly to continue training. Returns up to 200 lines of stdout+stderr.
+    Times out after 5 minutes.
     """
-    script = SCRIPTS_DIR / str(n) / "run.py"
+    script = EXPERIMENTS_DIR / str(n) / "run.py"
+    checkpoint = script.parent / "checkpoint.pt"
     env = {**os.environ, "PYTHONPATH": str(REPO_ROOT)}
     try:
         proc = subprocess.run(
-            ["conda", "run", "-n", "aperol", "python", "-u", str(script)],
+            ["conda", "run", "-n", "aperol", "python", "-u", str(script),
+             "--n_epoch", "1", "--checkpoint", str(checkpoint)],
             capture_output=True, text=True, timeout=300, env=env,
             cwd=str(REPO_ROOT),
         )
@@ -68,9 +73,10 @@ def run_experiment(n: int) -> str:
 
 @tool
 def list_experiments() -> str:
-    """List existing experiment folders (numeric) under scripts/md17/."""
+    """List existing experiment folders (numeric) under scripts/md17/experiments/."""
     dirs = sorted(
-        [d for d in SCRIPTS_DIR.iterdir() if d.is_dir() and d.name.isdigit()],
+        [d for d in EXPERIMENTS_DIR.iterdir() if d.is_dir() and d.name.isdigit()]
+        if EXPERIMENTS_DIR.exists() else [],
         key=lambda d: int(d.name),
     )
     return "\n".join(d.name for d in dirs) if dirs else "none"
@@ -78,18 +84,31 @@ def list_experiments() -> str:
 
 tools = [read_file, write_file, run_experiment, list_experiments]
 
-llm = ChatAnthropic(
-    model="claude-haiku-4-5-20251001",
+llm = ChatOpenRouter(
+    model="qwen/qwen3-coder:free",
 )
 
+@before_model
+def trim_to_128k(state, _runtime):
+    trimmed = trim_messages(
+        state["messages"],
+        max_tokens=131_072,
+        strategy="last",
+        token_counter="approximate",
+        include_system=True,
+    )
+    trimmed_ids = {m.id for m in trimmed}
+    removals = [RemoveMessage(id=m.id) for m in state["messages"] if m.id not in trimmed_ids]
+    return {"messages": removals} if removals else {}
+
 system = (SCRIPTS_DIR / "program.md").read_text()
-agent = create_agent(llm, tools, system_prompt=system)
+agent = create_agent(llm, tools, system_prompt=system, middleware=[trim_to_128k])
 
 if __name__ == "__main__":
     for chunk in agent.stream({
         "messages": [(
             "human",
-            "Start iterating. Keep n_epoch ≤ 10 for fast turnaround. "
+            "Start iterating."
             "After each run reflect on the val_f / val_e trend and improve."
         )]
     }):

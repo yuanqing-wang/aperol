@@ -116,17 +116,22 @@ def run(args):
     )
 
     run_name = Path(__file__).parent.name
-    wandb.init(project="aperol-md17", name=run_name, config=vars(args))
-
     start_epoch = 0
+    wandb_run_id = None
     if args.checkpoint and os.path.exists(args.checkpoint):
         ckpt = torch.load(args.checkpoint)
         model = ckpt["model"]
         optimizer = ckpt["optimizer"]
         start_epoch = ckpt["epoch"] + 1
+        wandb_run_id = ckpt.get("wandb_run_id")
         print(f"Resumed from {args.checkpoint} (epoch {start_epoch})")
 
-    for epoch in range(start_epoch, args.n_epoch):
+    if wandb_run_id:
+        wandb.init(project="aperol-md17", id=wandb_run_id, resume="must")
+    else:
+        wandb.init(project="aperol-md17", name=run_name, config=vars(args))
+
+    for epoch in range(start_epoch, start_epoch + args.n_epoch):
         for sample in train_loader:
             sample.position.requires_grad_(True)
 
@@ -180,7 +185,7 @@ def run(args):
         })
 
         if args.checkpoint:
-            torch.save({"model": model, "optimizer": optimizer, "epoch": epoch}, args.checkpoint)
+            torch.save({"model": model, "optimizer": optimizer, "epoch": epoch, "wandb_run_id": wandb.run.id}, args.checkpoint)
 
 if __name__ == "__main__":
     import argparse
@@ -189,7 +194,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_tr", type=int, default=1000)
     parser.add_argument("--n_vl", type=int, default=0)
     parser.add_argument("--batch_size", type=int, default=4)
-    parser.add_argument("--n_epoch", type=int, default=100000)
+    parser.add_argument("--n_epoch", type=int, default=1)
     parser.add_argument("--learning_rate", type=float, default=1e-5)
     parser.add_argument("--weight_decay", type=float, default=1e-10)
     parser.add_argument("--node_features", type=int, default=16)
@@ -199,6 +204,6 @@ if __name__ == "__main__":
     parser.add_argument("--depth", type=int, default=2)
     parser.add_argument("--energy_weight", type=float, default=0.01)
     parser.add_argument("--force_weight", type=float, default=0.99)
-    parser.add_argument("--checkpoint",   type=str,   default=None)
+    parser.add_argument("--checkpoint", type=str, default=str(Path(__file__).parent / "checkpoint.pt"))
     args = parser.parse_args()
     run(args)
