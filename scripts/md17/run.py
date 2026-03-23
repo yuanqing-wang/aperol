@@ -162,7 +162,7 @@ def run(args):
         except StopIteration:
             val_iter = iter(val_loader)
             val_sample = next(val_iter)
-        val_sample = _to_device(val_sample, device)
+        val_sample = val_sample.cuda() if device.type == "cuda" else val_sample
         val_sample.position.requires_grad_(True)
         val_energy = model(val_sample)
         val_force = -torch.autograd.grad(
