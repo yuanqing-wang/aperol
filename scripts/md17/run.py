@@ -189,17 +189,17 @@ def run(args):
 
         print(
             f"epoch {epoch:>2d} | loss {loss.item():.2f} | "
-            f"energy error {energy_error.item():.2f} | force error {force_error.item():.2f} | "
-            f"val_e {val_energy_mse.item():.2f} | val_f {val_force_mse.item():.2f}"
+            f"train energy error {energy_error.item():.2f} | train force error {force_error.item():.2f} | "
+            f"val energy error {val_energy_mse.item():.2f} | val force error {val_force_mse.item():.2f}"
         )
 
         wandb.log({
             "epoch": epoch,
             "loss": loss.item(),
-            "energy_error": energy_error.item(),
-            "force_error": force_error.item(),
-            "val_e": val_energy_mse.item(),
-            "val_f": val_force_mse.item(),
+            "train_energy_error": energy_error.item(),
+            "train_force_error": force_error.item(),
+            "val_energy_error": val_energy_mse.item(),
+            "val_force_error": val_force_mse.item(),
         })
 
         if args.checkpoint:
