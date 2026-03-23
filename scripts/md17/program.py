@@ -9,8 +9,8 @@ from langchain_openrouter import ChatOpenRouter
 from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
 
-SCRIPTS_DIR = Path.cwd()          # scripts/md17 — where run.sh is submitted from
-REPO_ROOT = SCRIPTS_DIR.parents[1]  # .../aperol
+SCRIPTS_DIR = Path(__file__).parent.resolve()  # scripts/md17
+REPO_ROOT = SCRIPTS_DIR.parents[1]             # .../aperol
 BASE_SCRIPT = SCRIPTS_DIR / "run.py"
 EXPERIMENTS_DIR = SCRIPTS_DIR / "experiments"
 
@@ -95,6 +95,7 @@ tools = [read_file, write_file, run_experiment, list_experiments, read_metrics]
 
 llm = ChatOpenRouter(
     model="nvidia/nemotron-3-super-120b-a12b:free",
+    # model="openai/gpt-5.4-nano"
 )
 
 
@@ -102,11 +103,12 @@ system = (SCRIPTS_DIR / "program.md").read_text()
 agent = create_react_agent(llm, tools, prompt=system)
 
 if __name__ == "__main__":
+    from langchain_core.messages import AIMessage
     for chunk in agent.stream(
         {"messages": [("human", "Start iterating. After each run reflect on the error trend and improve.")]},
         stream_mode="updates",
     ):
         for node, update in chunk.items():
             for msg in update.get("messages", []):
-                if hasattr(msg, "content") and msg.content:
-                    print(msg.content)
+                if isinstance(msg, AIMessage) and msg.content:
+                    print(msg.content, flush=True)
