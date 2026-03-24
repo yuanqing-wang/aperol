@@ -58,7 +58,8 @@ def run_experiment(n: int) -> str:
         output = (out if isinstance(out, str) else out.decode()) + \
                  (err if isinstance(err, str) else err.decode()) + \
                  "\n[timed out after 5 min]"
-    return "\n".join(output.strip().splitlines()[:200])
+    lines = [l for l in output.strip().splitlines() if not l.startswith("wandb:")]
+    return "\n".join(lines[:200])
 
 
 @tool
@@ -80,7 +81,11 @@ def read_metrics(n: int) -> str:
     return path.read_text() if path.exists() else f"No metrics found for experiment {n}."
 
 
-llm = ChatOpenRouter(model="openai/gpt-5.4-nano", max_retries=3)
+llm = ChatOpenRouter(
+    # model="openai/gpt-5.4-nano", 
+    model="qwen/qwen3-coder:free",
+    max_retries=3,
+)
 system = (SCRIPTS_DIR / "program.md").read_text()
 agent = create_react_agent(llm, [read_file, write_file, run_experiment, list_experiments, read_metrics], prompt=system)
 
