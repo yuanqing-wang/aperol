@@ -118,24 +118,17 @@ def _run_session(agent):
                     print(f"[tool result: {msg.name}]\n{msg.content[:500].rstrip()}", flush=True)
 
 
-def _is_rate_limit(e: Exception) -> bool:
-    return "TooManyRequests" in type(e).__name__ or "429" in str(e)
-
 
 if __name__ == "__main__":
+    import random
     session = 0
-    agent_idx = 0
     while True:
         session += 1
-        model = MODELS[agent_idx]
+        idx = random.randrange(len(agents))
+        model = MODELS[idx]
         print(f"\n=== session {session} (model: {model}) ===", flush=True)
         try:
-            _run_session(agents[agent_idx])
+            _run_session(agents[idx])
         except Exception as e:
-            if _is_rate_limit(e):
-                next_idx = (agent_idx + 1) % len(agents)
-                print(f"[rate limit] {model} — switching to {MODELS[next_idx]}", flush=True)
-                agent_idx = next_idx
-                session -= 1  # don't count failed session
-            else:
-                raise
+            print(f"[error] {model} — {e}", flush=True)
+            session -= 1  # don't count failed session
