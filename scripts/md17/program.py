@@ -108,8 +108,20 @@ def _run_session():
 
 
 if __name__ == "__main__":
+    import time
     session = 0
+    backoff = 60
     while True:
         session += 1
         print(f"\n=== session {session} ===", flush=True)
-        _run_session()
+        try:
+            _run_session()
+            backoff = 60  # reset on success
+        except Exception as e:
+            if "TooManyRequests" in type(e).__name__ or "429" in str(e):
+                print(f"[rate limit] sleeping {backoff}s before retry...", flush=True)
+                time.sleep(backoff)
+                backoff = min(backoff * 2, 600)
+                session -= 1  # don't count failed session
+            else:
+                raise
