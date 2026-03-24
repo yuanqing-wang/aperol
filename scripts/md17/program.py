@@ -3,6 +3,7 @@
 
 import os
 import subprocess
+import threading
 from pathlib import Path
 
 from langchain_openrouter import ChatOpenRouter
@@ -13,6 +14,17 @@ SCRIPTS_DIR = Path(__file__).parent.resolve()  # scripts/md17
 REPO_ROOT = SCRIPTS_DIR.parents[1]             # .../aperol
 BASE_SCRIPT = SCRIPTS_DIR / "run.py"
 EXPERIMENTS_DIR = SCRIPTS_DIR / "experiments"
+
+
+# background jobs: n -> {"proc": Popen, "buf": list[str], "done": bool}
+_jobs: dict[int, dict] = {}
+_jobs_lock = threading.Lock()
+
+
+def _drain(stream, buf: list):
+    for line in stream:
+        buf.append(line)
+    stream.close()
 
 
 def _resolve(path: str) -> Path:
@@ -42,31 +54,55 @@ def write_file(path: str, content: str) -> str:
 
 
 @tool
-def run_experiment(n: int) -> str:
+def start_experiment(n: int) -> str:
     """
-    Train experiment {n} for one epoch. Automatically resumes from
-    experiments/{n}/checkpoint.pt if it exists, then saves back to it. Call
-    repeatedly to continue training. Returns up to 200 lines of stdout+stderr.
-    Times out after 5 minutes.
+    Start training experiment {n} for one epoch in the background and return
+    immediately. Automatically resumes from experiments/{n}/checkpoint.pt if it
+    exists. Use poll_experiment(n) to check progress and retrieve output.
+    Returns an error if experiment {n} is already running.
     """
-    script = EXPERIMENTS_DIR / str(n) / "run.py"
-    checkpoint = script.parent / "checkpoint.pt"
-    env = {**os.environ, "PYTHONPATH": str(REPO_ROOT)}
-    try:
-        proc = subprocess.run(
+    with _jobs_lock:
+        job = _jobs.get(n)
+        if job and not job["done"]:
+            return f"Experiment {n} is already running."
+        script = EXPERIMENTS_DIR / str(n) / "run.py"
+        checkpoint = script.parent / "checkpoint.pt"
+        env = {**os.environ, "PYTHONPATH": str(REPO_ROOT)}
+        proc = subprocess.Popen(
             ["conda", "run", "-n", "aperol", "python", "-u", str(script),
              "--n_epoch", "1", "--checkpoint", str(checkpoint)],
-            capture_output=True, text=True, timeout=300, env=env,
-            cwd=str(REPO_ROOT),
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, env=env, cwd=str(REPO_ROOT),
         )
-        output = proc.stdout + proc.stderr
-    except subprocess.TimeoutExpired as exc:
-        out = exc.stdout or ""
-        err = exc.stderr or ""
-        output = (out if isinstance(out, str) else out.decode()) + \
-                 (err if isinstance(err, str) else err.decode()) + \
-                 "\n[timed out after 5 min]"
-    return "\n".join(output.strip().splitlines()[:200])
+        buf: list[str] = []
+        t = threading.Thread(target=_drain, args=(proc.stdout, buf), daemon=True)
+        t.start()
+        _jobs[n] = {"proc": proc, "buf": buf, "thread": t, "done": False}
+    return f"Experiment {n} started (pid {proc.pid})."
+
+
+@tool
+def poll_experiment(n: int) -> str:
+    """
+    Check the status of a background experiment {n} and return its output so far
+    (up to 200 lines). Reports whether it is still running or has finished
+    (including exit code). Safe to call multiple times.
+    """
+    with _jobs_lock:
+        job = _jobs.get(n)
+    if job is None:
+        return f"No record of experiment {n}. Use start_experiment({n}) first."
+    proc: subprocess.Popen = job["proc"]
+    buf: list[str] = job["buf"]
+    rc = proc.poll()
+    if rc is None:
+        status = "running"
+    else:
+        job["done"] = True
+        status = f"finished (exit code {rc})"
+    lines = "".join(buf).strip().splitlines()
+    output = "\n".join(lines[:200])
+    return f"[experiment {n}: {status}]\n{output}"
 
 
 @tool
@@ -91,7 +127,7 @@ def read_metrics(n: int) -> str:
     return path.read_text()
 
 
-tools = [read_file, write_file, run_experiment, list_experiments, read_metrics]
+tools = [read_file, write_file, start_experiment, poll_experiment, list_experiments, read_metrics]
 
 llm = ChatOpenRouter(
     model="openai/gpt-5.4-nano",
