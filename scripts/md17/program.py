@@ -7,7 +7,7 @@ from pathlib import Path
 
 from langchain_openrouter import ChatOpenRouter
 from langchain_core.tools import tool
-from langchain.agents import create_react_agent
+from langgraph.prebuilt import create_react_agent
 
 SCRIPTS_DIR = Path(__file__).parent.resolve()  # scripts/md17
 REPO_ROOT = SCRIPTS_DIR.parents[1]             # .../aperol
