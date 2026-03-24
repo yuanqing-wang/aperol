@@ -7,7 +7,7 @@ from pathlib import Path
 
 from langchain_openrouter import ChatOpenRouter
 from langchain_core.tools import tool
-from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_react_agent
 
 SCRIPTS_DIR = Path(__file__).parent.resolve()  # scripts/md17
 REPO_ROOT = SCRIPTS_DIR.parents[1]             # .../aperol
@@ -94,8 +94,8 @@ def read_metrics(n: int) -> str:
 tools = [read_file, write_file, run_experiment, list_experiments, read_metrics]
 
 llm = ChatOpenRouter(
-    model="nvidia/nemotron-3-super-120b-a12b:free",
-    # model="openai/gpt-5.4-nano"
+    model="openai/gpt-5.4-nano",
+    max_retries=3,
 )
 
 
@@ -103,12 +103,24 @@ system = (SCRIPTS_DIR / "program.md").read_text()
 agent = create_react_agent(llm, tools, prompt=system)
 
 if __name__ == "__main__":
+    import time
     from langchain_core.messages import AIMessage
-    for chunk in agent.stream(
-        {"messages": [("human", "Start iterating. After each run reflect on the error trend and improve.")]},
-        stream_mode="updates",
-    ):
-        for node, update in chunk.items():
-            for msg in update.get("messages", []):
-                if isinstance(msg, AIMessage) and msg.content:
-                    print(msg.content, flush=True)
+
+    max_attempts = 5
+    for attempt in range(1, max_attempts + 1):
+        try:
+            for chunk in agent.stream(
+                {"messages": [("human", "Start iterating. After each run reflect on the error trend and improve.")]},
+                stream_mode="updates",
+            ):
+                for node, update in chunk.items():
+                    for msg in update.get("messages", []):
+                        if isinstance(msg, AIMessage) and msg.content:
+                            print(msg.content, flush=True)
+            break
+        except Exception as e:
+            if attempt == max_attempts:
+                raise
+            wait = 2 ** attempt
+            print(f"[attempt {attempt}/{max_attempts}] Error: {e}. Retrying in {wait}s...", flush=True)
+            time.sleep(wait)
