@@ -102,25 +102,33 @@ llm = ChatOpenRouter(
 system = (SCRIPTS_DIR / "program.md").read_text()
 agent = create_react_agent(llm, tools, prompt=system)
 
-if __name__ == "__main__":
-    import time
-    from langchain_core.messages import AIMessage
+def _stream_agent(messages: list) -> list:
+    """Run one agent session, printing all output. Returns the final message list."""
+    from langchain_core.messages import AIMessage, ToolMessage
 
-    max_attempts = 5
-    for attempt in range(1, max_attempts + 1):
-        try:
-            for chunk in agent.stream(
-                {"messages": [("human", "Start iterating. After each run reflect on the error trend and improve.")]},
-                stream_mode="updates",
-            ):
-                for node, update in chunk.items():
-                    for msg in update.get("messages", []):
-                        if isinstance(msg, AIMessage) and msg.content:
-                            print(msg.content, flush=True)
-            break
-        except Exception as e:
-            if attempt == max_attempts:
-                raise
-            wait = 2 ** attempt
-            print(f"[attempt {attempt}/{max_attempts}] Error: {e}. Retrying in {wait}s...", flush=True)
-            time.sleep(wait)
+    state = {"messages": messages}
+    for chunk in agent.stream(state, stream_mode="updates"):
+        for _, update in chunk.items():
+            for msg in update.get("messages", []):
+                if isinstance(msg, AIMessage):
+                    if msg.content:
+                        print(f"[agent] {msg.content}", flush=True)
+                    for tc in getattr(msg, "tool_calls", []):
+                        args = ", ".join(f"{k}={v!r}" for k, v in tc["args"].items())
+                        print(f"[tool call] {tc['name']}({args})", flush=True)
+                elif isinstance(msg, ToolMessage):
+                    preview = msg.content[:500].rstrip()
+                    print(f"[tool result: {msg.name}]\n{preview}", flush=True)
+                messages = messages + [msg]
+    return messages
+
+
+if __name__ == "__main__":
+    messages = [("human", "Start iterating. After each run reflect on the error trend and improve. Never stop.")]
+    session = 0
+    while True:
+        session += 1
+        print(f"\n=== session {session} ===", flush=True)
+        messages = _stream_agent(messages)
+        # nudge the agent to keep going with full context preserved
+        messages = messages + [("human", "Continue. Analyse all experiments so far and keep iterating.")]

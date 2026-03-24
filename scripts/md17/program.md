@@ -39,3 +39,6 @@ Each iteration:
 
 ## Goal
 Minimise `val_f` (force MAE) and `val_e` (energy MSE) on malonaldehyde.
+
+## Continuity
+**Never stop.** After each `run_experiment` call, immediately loop back to step 1 of the Workflow. There is no terminal state — always either continue training the best experiment or start a new one with a concrete hypothesis. Keep iterating indefinitely.
