@@ -39,17 +39,17 @@ def write_file(path: str, content: str) -> str:
 
 
 @tool
-def run_experiment(n: int) -> str:
-    """Train experiment {n} for exactly one epoch. Resumes from checkpoint if it exists.
-    Returns up to 200 lines of output. Times out after 5 minutes."""
+def run_experiment(n: int, epochs: int = 1) -> str:
+    """Train experiment {n} for a given number of epochs (default 1). Resumes from checkpoint if it exists.
+    Returns up to 200 lines of output. Times out after 5 minutes per epoch."""
     script = EXPERIMENTS_DIR / str(n) / "run.py"
     checkpoint = script.parent / "checkpoint.pt"
     env = {**os.environ, "PYTHONPATH": str(REPO_ROOT)}
     try:
         proc = subprocess.run(
             ["conda", "run", "-n", "aperol", "python", "-u", str(script),
-             "--n_epoch", "1", "--checkpoint", str(checkpoint)],
-            capture_output=True, text=True, timeout=300, env=env, cwd=str(REPO_ROOT),
+             "--n_epoch", str(epochs), "--checkpoint", str(checkpoint)],
+            capture_output=True, text=True, timeout=300 * epochs, env=env, cwd=str(REPO_ROOT),
         )
         output = proc.stdout + proc.stderr
     except subprocess.TimeoutExpired as exc:

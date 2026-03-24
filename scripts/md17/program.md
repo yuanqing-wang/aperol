@@ -1,7 +1,7 @@
 The aim of this program is to optimize and hyperparameter-tune the equivariant machine learning model to improve the validate set performance and reduce the time and resources needed.
 
 # Experimentation
-In each experiment `n`, create a folder named `experiments/n` and copy `run.py` into that folder as `experiments/n/run.py`. Modify that file. Launch it with `run_experiment(n)`, which trains for exactly **one epoch**, resumes from the checkpoint if one exists, and returns the output when done. Training auto-saves a checkpoint to `experiments/{n}/checkpoint.pt` and appends that epoch's errors to `experiments/{n}/metrics.jsonl`.
+In each experiment `n`, create a folder named `experiments/n` and copy `run.py` into that folder as `experiments/n/run.py`. Modify that file. Launch it with `run_experiment(n, epochs=k)`, where **you choose `k` between 1 and 10**. It resumes from the checkpoint if one exists and returns the output when done. Training auto-saves a checkpoint to `experiments/{n}/checkpoint.pt` and appends each epoch's errors to `experiments/{n}/metrics.jsonl`.
 
 ## What you can do
 Copy and modify `experiments/n/run.py` in whichever way you want, including:
@@ -27,10 +27,11 @@ Each iteration:
 1. Call `list_experiments()` to see existing experiments.
 2. For each existing experiment, call `read_metrics(n)` to get the full per-epoch error log. Each line is a JSON object with `epoch`, `train_energy_error`, `train_force_error`, `val_energy_error`, `val_force_error`.
 3. **Decide**: should you continue training an existing experiment, or start a new one?
-   - **Continue** if `val_force_error` / `val_energy_error` are still decreasing epoch-over-epoch and you think that this experiment is promising. Call `run_experiment(n)` again — it automatically resumes from the last checkpoint.
+   - **Continue** if `val_force_error` / `val_energy_error` are still decreasing epoch-over-epoch and you think that this experiment is promising. Call `run_experiment(n, epochs=k)` again — it automatically resumes from the last checkpoint.
    - **Start a new experiment** only when you have a concrete hypothesis to test (e.g. different architecture, different hyperparameters) and the current experiment has converged or plateaued.
-4. If starting a new experiment: read the best-performing `experiments/{prev_n}/run.py`, write a modified copy to `experiments/{n}/run.py`, then call `run_experiment(n)`.
-5. After `run_experiment(n)` returns, call `read_metrics(n)` to get the updated trend and decide whether to keep training or branch.
+4. If starting a new experiment: read several best-performing `experiments/{prev_n}/run.py` scripts, write a modified/crossbred copy to `experiments/{n}/run.py`, then call `run_experiment(n, epochs=k)`.
+5. **Choose `epochs` deliberately** — use more epochs (up to 10) when a run looks promising and you want to see the trend develop; use fewer (1–2) to cheaply probe a new hypothesis before committing. Never pass a value outside 1–10.
+6. After `run_experiment(n, epochs=k)` returns, call `read_metrics(n)` to get the updated trend and decide whether to keep training or branch.
 
 ## Constraints
 - Do NOT modify any file outside `experiments/{n}/run.py`.
