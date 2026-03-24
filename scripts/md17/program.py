@@ -81,16 +81,27 @@ def read_metrics(n: int) -> str:
     return path.read_text() if path.exists() else f"No metrics found for experiment {n}."
 
 
-llm = ChatOpenRouter(
-    # model="openai/gpt-5.4-nano", 
-    model="qwen/qwen3-coder:free",
-    max_retries=3,
-)
+MODELS = [
+    "nvidia/nemotron-3-super-120b-a12b:free",
+    "minimax/minimax-m2.5:free",
+    "qwen/qwen3-coder:free",
+    "arcee-ai/trinity-large-preview:free",
+]
+
+tools = [read_file, write_file, run_experiment, list_experiments, read_metrics]
 system = (SCRIPTS_DIR / "program.md").read_text()
-agent = create_react_agent(llm, [read_file, write_file, run_experiment, list_experiments, read_metrics], prompt=system)
+
+agents = [
+    create_react_agent(
+        ChatOpenRouter(model=model, max_retries=1),
+        tools,
+        prompt=system,
+    )
+    for model in MODELS
+]
 
 
-def _run_session():
+def _run_session(agent):
     for chunk in agent.stream(
         {"messages": [("human", "Start iterating. After each run reflect on the error trend and improve. Never stop.")]},
         stream_mode="updates",
@@ -107,21 +118,24 @@ def _run_session():
                     print(f"[tool result: {msg.name}]\n{msg.content[:500].rstrip()}", flush=True)
 
 
+def _is_rate_limit(e: Exception) -> bool:
+    return "TooManyRequests" in type(e).__name__ or "429" in str(e)
+
+
 if __name__ == "__main__":
-    import time
     session = 0
-    backoff = 60
+    agent_idx = 0
     while True:
         session += 1
-        print(f"\n=== session {session} ===", flush=True)
+        model = MODELS[agent_idx]
+        print(f"\n=== session {session} (model: {model}) ===", flush=True)
         try:
-            _run_session()
-            backoff = 60  # reset on success
+            _run_session(agents[agent_idx])
         except Exception as e:
-            if "TooManyRequests" in type(e).__name__ or "429" in str(e):
-                print(f"[rate limit] sleeping {backoff}s before retry...", flush=True)
-                time.sleep(backoff)
-                backoff = min(backoff * 2, 600)
+            if _is_rate_limit(e):
+                next_idx = (agent_idx + 1) % len(agents)
+                print(f"[rate limit] {model} — switching to {MODELS[next_idx]}", flush=True)
+                agent_idx = next_idx
                 session -= 1  # don't count failed session
             else:
                 raise
