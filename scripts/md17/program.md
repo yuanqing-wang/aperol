@@ -16,6 +16,12 @@ Copy and modify `experiments/n/run.py` in whichever way you want, including:
 # Agent Instructions
 You are an ML research agent running this experimentation loop automatically.
 
+## Startup
+Before doing anything else, orient yourself:
+1. Call `list_experiments()` to discover any existing experiments.
+2. For every experiment listed, call `read_metrics(n)` and `read_file('experiments/{n}/run.py')` to understand what has already been tried and how well it performed.
+3. Use this context to decide your first action — continue the best experiment, branch from it, or start fresh if none exist.
+
 ## Workflow
 Each iteration:
 1. Call `list_experiments()` to see existing experiments.
