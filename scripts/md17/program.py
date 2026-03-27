@@ -103,9 +103,14 @@ tools = [read_file, write_file, run_experiment, list_experiments, read_metrics]
 system = (SCRIPTS_DIR / "program.md").read_text()
 
 agent = create_react_agent(
-    ChatOpenRouter(model=MODEL, max_retries=1, request_timeout=10),
+    ChatOpenRouter(
+        model=MODEL,
+        max_retries=1,
+        request_timeout=60,
+        reasoning={"effort": "none"},
+    ),
     tools,
-    state_modifier=make_state_modifier(system),
+    prompt=make_state_modifier(system),
 )
 
 
