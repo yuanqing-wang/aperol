@@ -107,7 +107,9 @@ def run(args):
     val_loader = DataLoader(val, batch_size=args.batch_size, shuffle=False, collate_fn=collate_md17)
     val_iter = iter(val_loader)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    assert torch.cuda.is_available(), "CUDA not available — refusing to run on CPU"
+    device = torch.device("cuda")
+    print(f"Using device: {device} ({torch.cuda.get_device_name(0)})", flush=True)
 
     # test rotational equivariance
     from aperol.test_utils import check_model

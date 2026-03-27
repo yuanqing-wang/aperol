@@ -101,7 +101,9 @@ agents = [
 ]
 
 
-def _run_session(agent):
+def _run_session(agent) -> bool:
+    """Run one session. Returns True if the agent made tool calls, False if it idled."""
+    made_tool_calls = False
     for chunk in agent.stream(
         {"messages": [("human", "Start iterating. After each run reflect on the error trend and improve. Never stop.")]},
         stream_mode="updates",
@@ -114,21 +116,32 @@ def _run_session(agent):
                     for tc in getattr(msg, "tool_calls", []):
                         args = ", ".join(f"{k}={v!r}" for k, v in tc["args"].items())
                         print(f"[tool call] {tc['name']}({args})", flush=True)
+                        made_tool_calls = True
                 elif isinstance(msg, ToolMessage):
                     print(f"[tool result: {msg.name}]\n{msg.content[:500].rstrip()}", flush=True)
+    return made_tool_calls
 
+
+def _other(idx: int) -> int:
+    """Return a random agent index different from the current one."""
+    choices = [i for i in range(len(agents)) if i != idx]
+    return random.choice(choices)
 
 
 if __name__ == "__main__":
     import random
+    idx = random.randrange(len(agents))
     session = 0
     while True:
         session += 1
-        idx = random.randrange(len(agents))
         model = MODELS[idx]
         print(f"\n=== session {session} (model: {model}) ===", flush=True)
         try:
-            _run_session(agents[idx])
+            active = _run_session(agents[idx])
+            if not active:
+                print(f"[idle] switching agent", flush=True)
+                idx = _other(idx)
         except Exception as e:
             print(f"[error] {model} — {e}", flush=True)
             session -= 1  # don't count failed session
+            idx = _other(idx)
