@@ -93,7 +93,7 @@ system = (SCRIPTS_DIR / "program.md").read_text()
 
 agents = [
     create_react_agent(
-        ChatOpenRouter(model=model, max_retries=1),
+        ChatOpenRouter(model=model, max_retries=1, request_timeout=10),
         tools,
         prompt=system,
     )
