@@ -7,7 +7,7 @@ from pathlib import Path
 
 from langchain_openrouter import ChatOpenRouter
 from langchain_core.tools import tool
-from langchain_core.messages import AIMessage, ToolMessage
+from langchain_core.messages import AIMessage, ToolMessage, SystemMessage
 from langgraph.prebuilt import create_react_agent
 
 SCRIPTS_DIR = Path(__file__).parent.resolve()
@@ -81,24 +81,32 @@ def read_metrics(n: int) -> str:
     return path.read_text() if path.exists() else f"No metrics found for experiment {n}."
 
 
-MODELS = [
-    "nvidia/nemotron-3-super-120b-a12b:free",
-    "minimax/minimax-m2.5:free",
-    "qwen/qwen3-coder:free",
-    "arcee-ai/trinity-large-preview:free",
-]
+MAX_WINDOW = 6  # max messages kept in context (excluding system message)
+
+
+def make_state_modifier(system_text: str):
+    sys_msg = SystemMessage(content=system_text)
+
+    def modifier(state):
+        messages = state["messages"]
+        if len(messages) > MAX_WINDOW:
+            # Always keep the first human message + the most recent MAX_WINDOW messages
+            messages = [messages[0]] + messages[-MAX_WINDOW:]
+        return [sys_msg] + messages
+
+    return modifier
+
+
+MODEL = "qwen/qwen3.5-9b"
 
 tools = [read_file, write_file, run_experiment, list_experiments, read_metrics]
 system = (SCRIPTS_DIR / "program.md").read_text()
 
-agents = [
-    create_react_agent(
-        ChatOpenRouter(model=model, max_retries=1, request_timeout=100),
-        tools,
-        prompt=system,
-    )
-    for model in MODELS
-]
+agent = create_react_agent(
+    ChatOpenRouter(model=MODEL, max_retries=1, request_timeout=10),
+    tools,
+    state_modifier=make_state_modifier(system),
+)
 
 
 def _run_session(agent) -> bool:
@@ -122,26 +130,13 @@ def _run_session(agent) -> bool:
     return made_tool_calls
 
 
-def _other(idx: int) -> int:
-    """Return a random agent index different from the current one."""
-    choices = [i for i in range(len(agents)) if i != idx]
-    return random.choice(choices)
-
-
 if __name__ == "__main__":
-    import random
-    idx = random.randrange(len(agents))
     session = 0
     while True:
         session += 1
-        model = MODELS[idx]
-        print(f"\n=== session {session} (model: {model}) ===", flush=True)
+        print(f"\n=== session {session} (model: {MODEL}) ===", flush=True)
         try:
-            active = _run_session(agents[idx])
-            if not active:
-                print(f"[idle] switching agent", flush=True)
-                idx = _other(idx)
+            _run_session(agent)
         except Exception as e:
-            print(f"[error] {model} — {e}", flush=True)
+            print(f"[error] {MODEL} — {e}", flush=True)
             session -= 1  # don't count failed session
-            idx = _other(idx)
