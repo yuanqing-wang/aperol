@@ -97,7 +97,7 @@ def make_state_modifier(system_text: str):
     return modifier
 
 
-MODEL = "qwen/qwen3.5-9b"
+MODEL = "openai/gpt-5.4-nano"
 
 tools = [read_file, write_file, run_experiment, list_experiments, read_metrics]
 system = (SCRIPTS_DIR / "program.md").read_text()
@@ -106,8 +106,8 @@ agent = create_react_agent(
     ChatOpenRouter(
         model=MODEL,
         max_retries=1,
-        request_timeout=60,
-        reasoning={"effort": "none"},
+        # request_timeout=60,
+        # reasoning={"effort": "none"},
     ),
     tools,
     prompt=make_state_modifier(system),
