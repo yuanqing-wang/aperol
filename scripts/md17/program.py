@@ -7,7 +7,7 @@ from pathlib import Path
 
 from langchain_openrouter import ChatOpenRouter
 from langchain_core.tools import tool
-from langchain_core.messages import AIMessage, ToolMessage, SystemMessage
+from langchain_core.messages import AIMessage, ToolMessage
 from langgraph.prebuilt import create_react_agent
 
 SCRIPTS_DIR = Path(__file__).parent.resolve()
@@ -81,23 +81,9 @@ def read_metrics(n: int) -> str:
     return path.read_text() if path.exists() else f"No metrics found for experiment {n}."
 
 
-MAX_WINDOW = 6  # max messages kept in context (excluding system message)
-
-
-def make_state_modifier(system_text: str):
-    sys_msg = SystemMessage(content=system_text)
-
-    def modifier(state):
-        messages = state["messages"]
-        if len(messages) > MAX_WINDOW:
-            # Always keep the first human message + the most recent MAX_WINDOW messages
-            messages = [messages[0]] + messages[-MAX_WINDOW:]
-        return [sys_msg] + messages
-
-    return modifier
-
 
 MODEL = "openai/gpt-5.4-nano"
+# MODEL = "qwen/qwen3.5-9b"
 
 tools = [read_file, write_file, run_experiment, list_experiments, read_metrics]
 system = (SCRIPTS_DIR / "program.md").read_text()
@@ -110,7 +96,7 @@ agent = create_react_agent(
         # reasoning={"effort": "none"},
     ),
     tools,
-    prompt=make_state_modifier(system),
+    prompt=system,
 )
 
 
