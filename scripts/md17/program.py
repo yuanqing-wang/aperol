@@ -9,6 +9,7 @@ from langchain_openrouter import ChatOpenRouter
 from langchain_core.tools import tool
 from langchain_core.messages import AIMessage, ToolMessage
 from langgraph.prebuilt import create_react_agent
+from langgraph.checkpoint.memory import MemorySaver
 
 SCRIPTS_DIR = Path(__file__).parent.resolve()
 REPO_ROOT = SCRIPTS_DIR.parents[1]
@@ -95,14 +96,16 @@ agent = create_react_agent(
     ),
     tools,
     prompt=system,
+    checkpointer=MemorySaver(),
 )
 
+THREAD = {"configurable": {"thread_id": "main"}}
 
-def _run_session(agent) -> bool:
-    """Run one session. Returns True if the agent made tool calls, False if it idled."""
-    made_tool_calls = False
+
+def _stream_turn(human_msg: str) -> None:
     for chunk in agent.stream(
-        {"messages": [("human", "Start iterating. After each run reflect on the error trend and improve. Never stop.")]},
+        {"messages": [("human", human_msg)]},
+        config=THREAD,
         stream_mode="updates",
     ):
         for _, update in chunk.items():
@@ -113,19 +116,14 @@ def _run_session(agent) -> bool:
                     for tc in getattr(msg, "tool_calls", []):
                         args = ", ".join(f"{k}={v!r}" for k, v in tc["args"].items())
                         print(f"[tool call] {tc['name']}({args})", flush=True)
-                        made_tool_calls = True
                 elif isinstance(msg, ToolMessage):
                     print(f"[tool result: {msg.name}]\n{msg.content[:500].rstrip()}", flush=True)
-    return made_tool_calls
 
 
 if __name__ == "__main__":
-    session = 0
+    _stream_turn("Start iterating. After each run reflect on the error trend and improve. Never stop.")
     while True:
-        session += 1
-        print(f"\n=== session {session} (model: {MODEL}) ===", flush=True)
         try:
-            _run_session(agent)
+            _stream_turn("Continue.")
         except Exception as e:
             print(f"[error] {MODEL} — {e}", flush=True)
-            session -= 1  # don't count failed session
