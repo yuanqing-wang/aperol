@@ -2,6 +2,7 @@
 """Iterative ML experimentation agent — implements program.md via LangChain."""
 
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -37,6 +38,21 @@ def write_file(path: str, content: str) -> str:
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(content)
     return f"Wrote {p}"
+
+
+@tool
+def new_experiment(n: int, source: int | None = None) -> str:
+    """Create experiment {n} by copying run.py from experiment {source} (or the base run.py if source is None).
+    Returns the path written. Edit the file with write_file before calling run_experiment."""
+    dest = EXPERIMENTS_DIR / str(n) / "run.py"
+    if dest.exists():
+        return f"Error: experiments/{n}/run.py already exists."
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    src = (EXPERIMENTS_DIR / str(source) / "run.py") if source is not None else (SCRIPTS_DIR / "run.py")
+    if not src.exists():
+        return f"Error: source not found: {src}"
+    shutil.copy(src, dest)
+    return f"Copied {src} → {dest}"
 
 
 @tool
@@ -86,7 +102,7 @@ def read_metrics(n: int) -> str:
 MODEL = "openai/gpt-5.4-nano"
 # MODEL = "qwen/qwen3.5-9b"
 
-tools = [read_file, write_file, run_experiment, list_experiments, read_metrics]
+tools = [new_experiment, read_file, write_file, run_experiment, list_experiments, read_metrics]
 system = (SCRIPTS_DIR / "program.md").read_text()
 
 agent = create_react_agent(
