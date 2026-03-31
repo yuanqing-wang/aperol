@@ -101,6 +101,7 @@ def read_metrics(n: int) -> str:
 
 MODEL = "openai/gpt-5.4-nano"
 # MODEL = "qwen/qwen3.5-9b"
+# MODEL = "minimax/minimax-m2.5:free"
 
 tools = [new_experiment, read_file, write_file, run_experiment, list_experiments, read_metrics]
 system = (SCRIPTS_DIR / "program.md").read_text()
