@@ -4,7 +4,7 @@ The aim of this program is to optimize and hyperparameter-tune the equivariant m
 In each experiment `n`, call `new_experiment(n, source=prev_n)` to create `experiments/n/run.py` as a physical copy of a previous experiment's script (or the base `run.py` if starting fresh). Then modify that file with `write_file` and launch it with `run_experiment(n, epochs=k)`, where **you choose `k` between 1 and 10**. It resumes from the checkpoint if one exists and returns the output when done. Training auto-saves a checkpoint to `experiments/{n}/checkpoint.pt` and appends each epoch's errors to `experiments/{n}/metrics.jsonl`. Note that both energy error and force error should be well below 1.0 so keep trying. The current design in `run.py` is just a template. It is very far from optimal.
 
 ## What you can do
-Based on existing `run.py`, write new `experiments/n/run.py` in whichever way you want, including:
+Read all experiments. Based on the best-performing script, test design choice hypothesis by implementing new `experiments/n/run.py` in whichever way you want, including:
 - **Boldly** changing the way models are constructed from the layers — reorder layers, remove layers, stack the same layer multiple times, mix different layer types, etc.
 - Trying radically different architectures: e.g. deeper vs. shallower networks, different message-passing schemes, skip connections, residual blocks, gating mechanisms.
 - Modifying the hyperparameters aggressively (learning rate, batch size, hidden dimensions, number of layers, cutoff radius, etc.).
