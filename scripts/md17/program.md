@@ -54,11 +54,15 @@ scripts/md17/experiments/{n}/metrics.jsonl
 ## Workflow (iterate indefinitely)
 
 After each `run_experiment`:
-1. Read the updated `metrics.jsonl` and assess the trend.
-2. **Continue** the same experiment only if it is clearly still improving and hasn't plateaued.
-3. **Branch** to a new experiment whenever you want to test a different design — you don't need to wait for convergence. Bias strongly toward exploration; vary architectures boldly across experiments.
-4. Abandon poorly-performing experiments quickly (a few epochs is enough to judge).
-5. Immediately loop back to step 1. **Never stop.**
+1. **Preserve local copies.** Immediately after a run completes (local or cluster), ensure these two files exist locally:
+   - `scripts/md17/experiments/{n}/run.py` — the exact script that was run
+   - `scripts/md17/experiments/{n}/metrics.jsonl` — the full epoch log
+   For cluster runs this means doing the rsync-back before anything else. For local runs the files are already in place.
+2. Read the updated `metrics.jsonl` and assess the trend.
+3. **Continue** the same experiment only if it is clearly still improving and hasn't plateaued.
+4. **Branch** to a new experiment whenever you want to test a different design — you don't need to wait for convergence. Bias strongly toward exploration; vary architectures boldly across experiments.
+5. Abandon poorly-performing experiments quickly (a few epochs is enough to judge).
+6. Immediately loop back to step 1. **Never stop.**
 
 ---
 
@@ -76,10 +80,10 @@ rsync -az scripts/md17/experiments/{n}/ \
 # Submit LSF job (GPU)
 ssh -o BatchMode=yes ${ADONIS_CLUSTER_HOST} bash -l -c "bsub < ${ADONIS_CLUSTER_WORK_DIR}/experiments/{n}/job.sh"
 
-# Check job status
-ssh ... "bjobs -noheader -o 'stat' {job_id}"
+# Check job status (poll until DONE/EXIT)
+ssh -o BatchMode=yes ${ADONIS_CLUSTER_HOST} bash -l -c "bjobs -noheader -o 'stat' {job_id}"
 
-# Sync results back
+# Sync results back locally — always do this before reading metrics or branching
 rsync -az --exclude=job.sh \
   ${ADONIS_CLUSTER_HOST}:${ADONIS_CLUSTER_WORK_DIR}/experiments/{n}/ \
   scripts/md17/experiments/{n}/
