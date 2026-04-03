@@ -1,48 +1,107 @@
-The aim of this program is to optimize and hyperparameter-tune the equivariant machine learning model to improve the validate set performance and reduce the time and resources needed.
+# ML Experimentation Agent — MD17 Malonaldehyde
 
-# Experimentation
-In each experiment `n`, call `new_experiment(n, source=prev_n)` to create `experiments/n/run.py` as a physical copy of a previous experiment's script (or the base `run.py` if starting fresh). Then modify that file with `write_file` and launch it with `run_experiment(n, epochs=k)`, where **you choose `k` between 1 and 10**. It resumes from the checkpoint if one exists and returns the output when done. Training auto-saves a checkpoint to `experiments/{n}/checkpoint.pt` and appends each epoch's errors to `experiments/{n}/metrics.jsonl`. Note that both energy error and force error should be well below 1.0 so keep trying. The current design in `run.py` is just a template. It is very far from optimal.
+You are an ML research agent. Your goal is to iteratively optimize an equivariant graph neural network on the MD17 malonaldehyde dataset, minimizing validation force error (`val_force_error`) and validation energy error (`val_energy_error`). Both should be well below 1.0. The base `run.py` is a starting template — it is far from optimal.
 
-## What you can do
-Read all experiments. Based on the best-performing script, test design choice hypothesis by implementing new `experiments/n/run.py` in whichever way you want, including:
-- **Boldly** changing the way models are constructed from the layers — reorder layers, remove layers, stack the same layer multiple times, mix different layer types, etc.
-- Trying radically different architectures: e.g. deeper vs. shallower networks, different message-passing schemes, skip connections, residual blocks, gating mechanisms.
-- Modifying the hyperparameters aggressively (learning rate, batch size, hidden dimensions, number of layers, cutoff radius, etc.).
-- Implementing new layers, as long as they pass the `check_layer` test to ensure equivariance.
-- Changing the `FeedForward` implementation with any `endomorphism` layers.
-- Experimenting with different activation functions, normalization strategies, or aggregation schemes.
+All paths below are relative to `scripts/md17/` inside the repo. The repo root is two levels up.
 
-## What you cannot do
-- Changing the rest of the implementation.
-- Changing the data split.
+---
 
-# Agent Instructions
-You are an ML research agent running this experimentation loop automatically.
+## Orientation (do this first, every session)
 
-## Startup
-Before doing anything else, orient yourself:
-1. Call `list_experiments()` to discover any existing experiments.
-2. For every experiment listed, call `read_metrics(n)` and `read_file('experiments/{n}/run.py')` to understand what has already been tried and how well it performed.
-3. Use this context to decide your first action — continue the best experiment, branch from it, or start fresh if none exist.
+1. List existing experiments by checking what numbered subdirectories exist under `scripts/md17/experiments/`.
+2. For each experiment, read `experiments/{n}/metrics.jsonl` (one JSON object per epoch: `epoch`, `train_energy_error`, `train_force_error`, `val_energy_error`, `val_force_error`) and `experiments/{n}/run.py`.
+3. Decide whether to continue training the best experiment, branch from it, or start fresh.
 
-## Workflow
-Each iteration:
-1. Call `list_experiments()` to see existing experiments.
-2. For each existing experiment, call `read_metrics(n)` to get the full per-epoch error log. Each line is a JSON object with `epoch`, `train_energy_error`, `train_force_error`, `val_energy_error`, `val_force_error`.
-3. **Decide**: should you continue training an existing experiment, or start a new one?
-   - **Continue** only if the experiment is clearly still improving and hasn't plateaued.
-   - **Start a new experiment** whenever you want to try a different design — you don't need to wait for convergence. Bias toward exploration: if in doubt, branch and try something different. Vary the architecture boldly across experiments (layer types, layer order, depth, width, skip connections, etc.).
-4. If starting a new experiment: call `new_experiment(n, source=prev_n)` to copy the best-performing script, then use `write_file` to apply your modifications, then call `run_experiment(n, epochs=k)`. Never write `experiments/{n}/run.py` from scratch or use Python imports from another experiment.
-5. **Choose `epochs` deliberately** — use more epochs (up to 10) when a run looks promising and you want to see the trend develop; use fewer (1–2) to cheaply probe a new hypothesis before committing. Never pass a value outside 1–10.
-6. After `run_experiment(n, epochs=k)` returns, call `read_metrics(n)` to get the updated trend and decide whether to keep training or branch.
+---
 
-## Constraints
-- Do NOT modify any file outside `experiments/{n}/run.py`.
-- The `check_model()` call must pass (ensures rotational invariance).
-- Don't linger on poorly-performing experiments — if a run is not improving after a few epochs, abandon it and try something new.
+## Running experiments
 
-## Goal
-Minimise `val_f` (force MAE) and `val_e` (energy MSE) on malonaldehyde.
+**Create a new experiment** by copying an existing script:
+```bash
+cp scripts/md17/experiments/{source}/run.py scripts/md17/experiments/{n}/run.py
+# or from the base template:
+cp scripts/md17/run.py scripts/md17/experiments/{n}/run.py
+```
+Then edit `experiments/{n}/run.py` with your changes before running.
 
-## Continuity
-**Never stop.** After each `run_experiment` call, immediately loop back to step 1 of the Workflow. There is no terminal state — always either continue training the best experiment or start a new one with a concrete hypothesis. Keep iterating indefinitely.
+**Run an experiment** (from the repo root):
+```bash
+PYTHONPATH=. conda run -n aperol python -u scripts/md17/experiments/{n}/run.py \
+  --n_epoch {k} \
+  --checkpoint scripts/md17/experiments/{n}/checkpoint.pt
+```
+Choose `k` between 1 and 10. Use fewer epochs (1–2) to cheaply probe a new hypothesis; use more (up to 10) when a run looks promising. Training resumes from the checkpoint if it exists and appends to `metrics.jsonl` automatically.
+
+**Read metrics** after each run:
+```
+scripts/md17/experiments/{n}/metrics.jsonl
+```
+
+---
+
+## What you can change (inside `experiments/{n}/run.py` only)
+
+- How the `Layer` class is constructed — reorder, remove, or stack operations; add skip connections, residual blocks, gating; mix different layer types.
+- The `Model` class — depth, width, architecture.
+- Hyperparameters — learning rate, batch size, weight decay, feature dimensions, cutoff, loss weights, etc.
+- The `FeedForward` factory — swap in any `endomorphism` layers (`LazySquareLinear`, `LazyLayerNorm`, etc.) or activation functions.
+- Add entirely new architectures, as long as `check_model()` passes (it verifies rotational equivariance).
+
+**Do not** modify anything outside `experiments/{n}/run.py`. Do not change the data split.
+
+---
+
+## Workflow (iterate indefinitely)
+
+After each `run_experiment`:
+1. Read the updated `metrics.jsonl` and assess the trend.
+2. **Continue** the same experiment only if it is clearly still improving and hasn't plateaued.
+3. **Branch** to a new experiment whenever you want to test a different design — you don't need to wait for convergence. Bias strongly toward exploration; vary architectures boldly across experiments.
+4. Abandon poorly-performing experiments quickly (a few epochs is enough to judge).
+5. Immediately loop back to step 1. **Never stop.**
+
+---
+
+## Cluster (LSF via SSH) — optional
+
+If `ADONIS_CLUSTER_HOST` and `ADONIS_CLUSTER_WORK_DIR` are set, you can offload training:
+
+```bash
+# Sync repo and experiment to cluster
+rsync -az --exclude=__pycache__ --exclude='*.egg-info' --exclude=.git \
+  . ${ADONIS_CLUSTER_HOST}:${ADONIS_CLUSTER_WORK_DIR}/repo/
+rsync -az scripts/md17/experiments/{n}/ \
+  ${ADONIS_CLUSTER_HOST}:${ADONIS_CLUSTER_WORK_DIR}/experiments/{n}/
+
+# Submit LSF job (GPU)
+ssh -o BatchMode=yes ${ADONIS_CLUSTER_HOST} bash -l -c "bsub < ${ADONIS_CLUSTER_WORK_DIR}/experiments/{n}/job.sh"
+
+# Check job status
+ssh ... "bjobs -noheader -o 'stat' {job_id}"
+
+# Sync results back
+rsync -az --exclude=job.sh \
+  ${ADONIS_CLUSTER_HOST}:${ADONIS_CLUSTER_WORK_DIR}/experiments/{n}/ \
+  scripts/md17/experiments/{n}/
+```
+
+A GPU BSub script template:
+```bash
+#!/bin/bash
+#BSUB -J aperol_exp{n}
+#BSUB -q gpuqueue
+#BSUB -gpu "num=1:j_exclusive=yes:mode=shared"
+#BSUB -R "select[V100] rusage[mem=16] span[ptile=1]"
+#BSUB -W 23:59
+#BSUB -n 1
+#BSUB -o {remote_exp}/job_%J.log
+#BSUB -e {remote_exp}/job_%J.err
+
+set -euo pipefail
+cd {remote_exp}
+source ~/.bashrc
+export PYTHONPATH={remote_repo}
+conda activate ${ADONIS_CLUSTER_CONDA_ENV:-aperol}
+python -u {remote_exp}/run.py --n_epoch {k} --checkpoint {remote_exp}/checkpoint.pt
+echo APEROL_JOB_DONE
+```
