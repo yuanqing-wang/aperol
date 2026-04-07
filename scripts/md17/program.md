@@ -56,6 +56,10 @@ scripts/md17/experiments/{n}/metrics.jsonl
 
 **Do not** modify anything outside `experiments/{n}/run.py`. Do not change the data split.
 
+**Do not** change `n_vl` or `n_tr` unless the experiment is explicitly about data scaling. The validated defaults (`n_vl=0`, `n_tr=950`) must be preserved across all architecture experiments — changing them confounds comparisons.
+
+**Be bold with architecture.** Past wins came from non-obvious structural changes (angle features, residuals, NequIP-style tensor products). When designing new experiments, lean toward high-variance ideas rather than small hyperparameter tweaks. Good candidates include: angle/dihedral features (3-body, 4-body), attention mechanisms, message-passing depth, multi-scale aggregation, tensor product layers, and combined best-of approaches. A bold experiment that fails fast is more informative than a cautious one that barely moves the needle.
+
 ---
 
 ## Workflow (iterate indefinitely)
