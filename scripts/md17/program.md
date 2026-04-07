@@ -37,6 +37,13 @@ Choose `k` between 1 and 10. Use fewer epochs (1–2) to cheaply probe a new hyp
 scripts/md17/experiments/{n}/metrics.jsonl
 ```
 
+**Validation pattern that works** (learned from exp261-264):
+- Use `n_vl=0` — lets `load_md17` keep all remaining data (~50k samples) as the val pool. A small `n_vl` (e.g. 50) gives an unrepresentative val set and causes erratic spikes.
+- Use `val_loader = DataLoader(val, shuffle=False, ...)` and evaluate on the **first 20 batches** every epoch via `itertools.islice(val_loader, 20)`. The fixed order means the same molecules are evaluated each epoch, giving stable, comparable metrics.
+- Do NOT use `shuffle=True` for val — it causes random high-energy batches to dominate the MSE, producing misleading spikes.
+- Use **Adam** (not AdamW) with `weight_decay=1e-10`. AdamW with meaningful weight decay destabilises early training.
+- Use **L1 loss** (`F.l1_loss`) for forces in both training and validation. MSE force loss amplifies outlier batches quadratically, causing wild oscillations and catastrophic spikes (train_force jumping to 21932). L1 is linear in error → stable monotonic convergence. Val metric is then force MAE; target <1.0 corresponds to MAE < 1 kcal/mol/Å.
+
 ---
 
 ## What you can change (inside `experiments/{n}/run.py` only)
@@ -66,46 +73,88 @@ After each `run_experiment`:
 
 ---
 
-## Cluster (LSF via SSH) — optional
+## Cluster (LSF via SSH)
 
-If `ADONIS_CLUSTER_HOST` and `ADONIS_CLUSTER_WORK_DIR` are set, you can offload training:
-
-```bash
-# Sync repo and experiment to cluster
-rsync -az --exclude=__pycache__ --exclude='*.egg-info' --exclude=.git \
-  . ${ADONIS_CLUSTER_HOST}:${ADONIS_CLUSTER_WORK_DIR}/repo/
-rsync -az scripts/md17/experiments/{n}/ \
-  ${ADONIS_CLUSTER_HOST}:${ADONIS_CLUSTER_WORK_DIR}/experiments/{n}/
-
-# Submit LSF job (GPU)
-ssh -o BatchMode=yes ${ADONIS_CLUSTER_HOST} bash -l -c "bsub < ${ADONIS_CLUSTER_WORK_DIR}/experiments/{n}/job.sh"
-
-# Check job status (poll until DONE/EXIT)
-ssh -o BatchMode=yes ${ADONIS_CLUSTER_HOST} bash -l -c "bjobs -noheader -o 'stat' {job_id}"
-
-# Sync results back locally — always do this before reading metrics or branching
-rsync -az --exclude=job.sh \
-  ${ADONIS_CLUSTER_HOST}:${ADONIS_CLUSTER_WORK_DIR}/experiments/{n}/ \
-  scripts/md17/experiments/{n}/
+Set these env vars before using cluster commands:
+```
+ADONIS_CLUSTER_HOST=wangy1@lilac.mskcc.org
+ADONIS_CLUSTER_WORK_DIR=/data/chodera/wangyq/aperol
+ADONIS_CLUSTER_CONDA_ENV=aperol
 ```
 
-A GPU BSub script template:
+The LSF binary is at `/admin/lsflilac/lsf/10.1/linux3.10-glibc2.17-x86_64/bin/` — it is not in the default PATH, so always use `bash -l -c` to get it, or use the full path. Using `bash -l -c` also causes a harmless `module: command not found` warning from `~/.bashrc` line 22 — ignore it.
+
 ```bash
+# Sync repo to cluster (run from repo root; excludes experiments dir)
+rsync -az --exclude=__pycache__ --exclude='*.egg-info' --exclude=.git --exclude='experiments/' \
+  . ${ADONIS_CLUSTER_HOST}:${ADONIS_CLUSTER_WORK_DIR}/
+
+# Sync a single experiment to cluster
+rsync -az scripts/md17/experiments/{n}/ \
+  ${ADONIS_CLUSTER_HOST}:${ADONIS_CLUSTER_WORK_DIR}/scripts/md17/experiments/{n}/
+
+# Write job.sh on the cluster (substitute {n}, {remote_exp}, {k} before running)
+ssh -o BatchMode=yes -o ConnectTimeout=15 ${ADONIS_CLUSTER_HOST} bash -l -c "
+cat > {remote_exp}/job.sh << 'EOF'
 #!/bin/bash
 #BSUB -J aperol_exp{n}
 #BSUB -q gpuqueue
-#BSUB -gpu "num=1:j_exclusive=yes:mode=shared"
-#BSUB -R "select[V100] rusage[mem=16] span[ptile=1]"
+#BSUB -gpu \"num=1:j_exclusive=yes:mode=shared\"
+#BSUB -R \"select[V100] rusage[mem=16] span[ptile=1]\"
 #BSUB -W 23:59
 #BSUB -n 1
 #BSUB -o {remote_exp}/job_%J.log
 #BSUB -e {remote_exp}/job_%J.err
 
 set -euo pipefail
-cd {remote_exp}
 source ~/.bashrc
-export PYTHONPATH={remote_repo}
-conda activate ${ADONIS_CLUSTER_CONDA_ENV:-aperol}
-python -u {remote_exp}/run.py --n_epoch {k} --checkpoint {remote_exp}/checkpoint.pt
+export PYTHONPATH=${ADONIS_CLUSTER_WORK_DIR}
+conda run -n ${ADONIS_CLUSTER_CONDA_ENV} python -u {remote_exp}/run.py \
+  --n_epoch {k} \
+  --checkpoint {remote_exp}/checkpoint.pt
 echo APEROL_JOB_DONE
+EOF
+"
+
+# Submit — must use bash -l -c so LSF binaries are in PATH
+ssh -o BatchMode=yes -o ConnectTimeout=15 ${ADONIS_CLUSTER_HOST} bash -l -c \
+  '"bsub < {remote_exp}/job.sh"'
+
+# Check job status
+ssh -o BatchMode=yes -o ConnectTimeout=15 ${ADONIS_CLUSTER_HOST} bash -l -c \
+  '"bjobs -noheader -o stat {job_id} 2>/dev/null || bhist -noheader -o stat {job_id} 2>/dev/null | head -1"'
+
+# Sync results back locally — always do this before reading metrics or branching
+rsync -az --exclude=job.sh \
+  ${ADONIS_CLUSTER_HOST}:${ADONIS_CLUSTER_WORK_DIR}/scripts/md17/experiments/{n}/ \
+  scripts/md17/experiments/{n}/
 ```
+
+**Note on `conda run` in job.sh:** Use `conda run -n {env}` rather than `conda activate` — the latter requires an interactive shell and will silently fail in BSub jobs.
+
+---
+
+## Experiment history and status (2026-04-07)
+
+### Best known result
+- **exp279**: val_force_error=0.2169 (NequIP + residuals + 10k data, NO angle features)
+
+### Queued / pending experiments (441-603)
+DimeNet++-family experiments covering: radial basis variants, angular basis variants,
+message passing variants, multi-scale, element conditioning, hyperparameter sweeps,
+data augmentation (SO(3) rotation), loss functions, combined best (exp600).
+
+### Designed but not yet submitted (604-615)
+Ready to submit when queue drops below ~195:
+- 604: n_tr=500k + DimeNet++ best arch
+- 605: n_tr=900k + DimeNet++ best arch
+- 606: LR warmup (10 epochs linear → SGDR)
+- 607: Dihedral angle (4-body) features
+- 608: SWA instead of EMA
+- 609: Gradient accumulation (eff. batch=32)
+- 610: Larger model (D=128, depth=10)
+- 611: Weight-tied layers (12 iterations of 1 shared layer)
+- 612: Geometric self-attention (multi-head, distance bias)
+- 613: EMA=0.9999 + n_tr=500k
+- 614: force_weight=0.99 + n_tr=500k + EMA=0.9999
+- 615: NequIP-only (no DimeNet++) + n_tr=500k
