@@ -37,13 +37,6 @@ Choose `k` between 1 and 10. Use fewer epochs (1–2) to cheaply probe a new hyp
 scripts/md17/experiments/{n}/metrics.jsonl
 ```
 
-**Validation pattern that works** (learned from exp261-264):
-- Use `n_vl=0` — lets `load_md17` keep all remaining data (~50k samples) as the val pool. A small `n_vl` (e.g. 50) gives an unrepresentative val set and causes erratic spikes.
-- Use `val_loader = DataLoader(val, shuffle=False, ...)` and evaluate on the **first 20 batches** every epoch via `itertools.islice(val_loader, 20)`. The fixed order means the same molecules are evaluated each epoch, giving stable, comparable metrics.
-- Do NOT use `shuffle=True` for val — it causes random high-energy batches to dominate the MSE, producing misleading spikes.
-- Use **Adam** (not AdamW) with `weight_decay=1e-10`. AdamW with meaningful weight decay destabilises early training.
-- Use **L1 loss** (`F.l1_loss`) for forces in both training and validation. MSE force loss amplifies outlier batches quadratically, causing wild oscillations and catastrophic spikes (train_force jumping to 21932). L1 is linear in error → stable monotonic convergence. Val metric is then force MAE; target <1.0 corresponds to MAE < 1 kcal/mol/Å.
-
 ---
 
 ## What you can change (inside `experiments/{n}/run.py` only)
@@ -56,9 +49,24 @@ scripts/md17/experiments/{n}/metrics.jsonl
 
 **Do not** modify anything outside `experiments/{n}/run.py`. Do not change the data split.
 
-**Do not** change `n_vl` or `n_tr` unless the experiment is explicitly about data scaling. The validated defaults (`n_vl=0`, `n_tr=950`) must be preserved across all architecture experiments — changing them confounds comparisons.
+**Do not** change `n_vl` or `n_tr`. The validated defaults (`n_vl=1000`, `n_tr=1000`) must be preserved across all architecture experiments — changing them confounds comparisons.
 
 **Be bold with architecture.** Past wins came from non-obvious structural changes (angle features, residuals, NequIP-style tensor products). When designing new experiments, lean toward high-variance ideas rather than small hyperparameter tweaks. Good candidates include: angle/dihedral features (3-body, 4-body), attention mechanisms, message-passing depth, multi-scale aggregation, tensor product layers, and combined best-of approaches. A bold experiment that fails fast is more informative than a cautious one that barely moves the needle.
+
+---
+
+## Insights log
+
+Keep a running record of learned experiences in `scripts/md17/insight.md`. After every experiment (or whenever you draw a meaningful conclusion), append an entry in this format:
+
+```markdown
+## Exp {n} — <one-line description>
+- **Result:** val_force_error=X.XX, val_energy_error=X.XX (epoch K)
+- **What worked / didn't:** ...
+- **Takeaway:** ...
+```
+
+Read `insight.md` at the start of each session (during Orientation) so prior findings inform new designs. Never overwrite the file — only append.
 
 ---
 
@@ -137,28 +145,3 @@ rsync -az --exclude=job.sh \
 **Note on `conda run` in job.sh:** Use `conda run -n {env}` rather than `conda activate` — the latter requires an interactive shell and will silently fail in BSub jobs.
 
 ---
-
-## Experiment history and status (2026-04-07)
-
-### Best known result
-- **exp279**: val_force_error=0.2169 (NequIP + residuals + 10k data, NO angle features)
-
-### Queued / pending experiments (441-603)
-DimeNet++-family experiments covering: radial basis variants, angular basis variants,
-message passing variants, multi-scale, element conditioning, hyperparameter sweeps,
-data augmentation (SO(3) rotation), loss functions, combined best (exp600).
-
-### Designed but not yet submitted (604-615)
-Ready to submit when queue drops below ~195:
-- 604: n_tr=500k + DimeNet++ best arch
-- 605: n_tr=900k + DimeNet++ best arch
-- 606: LR warmup (10 epochs linear → SGDR)
-- 607: Dihedral angle (4-body) features
-- 608: SWA instead of EMA
-- 609: Gradient accumulation (eff. batch=32)
-- 610: Larger model (D=128, depth=10)
-- 611: Weight-tied layers (12 iterations of 1 shared layer)
-- 612: Geometric self-attention (multi-head, distance bias)
-- 613: EMA=0.9999 + n_tr=500k
-- 614: force_weight=0.99 + n_tr=500k + EMA=0.9999
-- 615: NequIP-only (no DimeNet++) + n_tr=500k

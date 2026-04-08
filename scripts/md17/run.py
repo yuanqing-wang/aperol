@@ -99,8 +99,8 @@ class Model(Module):
 def run(args):
     train, val, _ = load_md17(
         args.data,
-        n_tr=args.n_tr,
-        n_vl=args.n_vl,
+        n_tr=1000,
+        n_vl=1000,
     )
 
     train_loader = DataLoader(train, batch_size=args.batch_size, shuffle=True, collate_fn=collate_md17)
@@ -221,8 +221,6 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", type=str, default="malonaldehyde")
-    parser.add_argument("--n_tr", type=int, default=1000)
-    parser.add_argument("--n_vl", type=int, default=0)
     parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--n_epoch", type=int, default=1)
     parser.add_argument("--learning_rate", type=float, default=1e-5)
