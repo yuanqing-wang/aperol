@@ -24,13 +24,9 @@ cp scripts/md17/run.py scripts/md17/experiments/{n}/run.py
 ```
 Then edit `experiments/{n}/run.py` with your changes before running.
 
-**Run an experiment** (from the repo root):
-```bash
-PYTHONPATH=. conda run -n aperol python -u scripts/md17/experiments/{n}/run.py \
-  --n_epoch {k} \
-  --checkpoint scripts/md17/experiments/{n}/checkpoint.pt
-```
-Choose `k` between 1 and 10. Use fewer epochs (1–2) to cheaply probe a new hypothesis; use more (up to 10) when a run looks promising. Training resumes from the checkpoint if it exists and appends to `metrics.jsonl` automatically.
+**Run an experiment** by submitting a SLURM job (see the Cluster section). Choose `k` between 1 and 10. Use fewer epochs (1–2) to cheaply probe a new hypothesis; use more (up to 10) when a run looks promising. Training resumes from the checkpoint if it exists and appends to `metrics.jsonl` automatically.
+
+**Only one job may be submitted at a time** (debug partition constraint). Always wait for the current job to finish before submitting the next.
 
 **Read metrics** after each run:
 ```
@@ -73,75 +69,57 @@ Read `insight.md` at the start of each session (during Orientation) so prior fin
 ## Workflow (iterate indefinitely)
 
 After each `run_experiment`:
-1. **Preserve local copies.** Immediately after a run completes (local or cluster), ensure these two files exist locally:
+1. **Preserve copies.** Immediately after a run completes, ensure these two files exist:
    - `scripts/md17/experiments/{n}/run.py` — the exact script that was run
    - `scripts/md17/experiments/{n}/metrics.jsonl` — the full epoch log
-   For cluster runs this means doing the rsync-back before anything else. For local runs the files are already in place.
+   These are written directly to the work directory on the cluster.
 2. Read the updated `metrics.jsonl` and assess the trend.
 3. **Continue** the same experiment only if it is clearly still improving and hasn't plateaued.
-4. **Branch** to a new experiment whenever you want to test a different design — you don't need to wait for convergence. Bias strongly toward exploration; vary architectures boldly across experiments.
+4. **Branch** to a new experiment whenever you want to test a different design. Run experiments sequentially — never submit a new job until the current one has finished. Bias strongly toward exploration; vary architectures boldly across experiments.
 5. Abandon poorly-performing experiments quickly (a few epochs is enough to judge).
 6. Immediately loop back to step 1. **Never stop.**
 
 ---
 
-## Cluster (LSF via SSH)
+## Cluster (SLURM on Trillium/SciNet)
 
-Set these env vars before using cluster commands:
+Running directly on the Trillium login node — no SSH needed. Set these env vars before using cluster commands:
 ```
-ADONIS_CLUSTER_HOST=wangy1@lilac.mskcc.org
-ADONIS_CLUSTER_WORK_DIR=/data/chodera/wangyq/aperol
+ADONIS_CLUSTER_WORK_DIR=/scratch/yqw/aperol
 ADONIS_CLUSTER_CONDA_ENV=aperol
 ```
 
-The LSF binary is at `/admin/lsflilac/lsf/10.1/linux3.10-glibc2.17-x86_64/bin/` — it is not in the default PATH, so always use `bash -l -c` to get it, or use the full path. Using `bash -l -c` also causes a harmless `module: command not found` warning from `~/.bashrc` line 22 — ignore it.
-
 ```bash
-# Sync repo to cluster (run from repo root; excludes experiments dir)
-rsync -az --exclude=__pycache__ --exclude='*.egg-info' --exclude=.git --exclude='experiments/' \
-  . ${ADONIS_CLUSTER_HOST}:${ADONIS_CLUSTER_WORK_DIR}/
-
-# Sync a single experiment to cluster
-rsync -az scripts/md17/experiments/{n}/ \
-  ${ADONIS_CLUSTER_HOST}:${ADONIS_CLUSTER_WORK_DIR}/scripts/md17/experiments/{n}/
-
-# Write job.sh on the cluster (substitute {n}, {remote_exp}, {k} before running)
-ssh -o BatchMode=yes -o ConnectTimeout=15 ${ADONIS_CLUSTER_HOST} bash -l -c "
-cat > {remote_exp}/job.sh << 'EOF'
+# Write job.sh (substitute {n}, {k} before running)
+cat > ${ADONIS_CLUSTER_WORK_DIR}/scripts/md17/experiments/{n}/job.sh << 'EOF'
 #!/bin/bash
-#BSUB -J aperol_exp{n}
-#BSUB -q gpuqueue
-#BSUB -gpu \"num=1:j_exclusive=yes:mode=shared\"
-#BSUB -R \"select[V100] rusage[mem=16] span[ptile=1]\"
-#BSUB -W 23:59
-#BSUB -n 1
-#BSUB -o {remote_exp}/job_%J.log
-#BSUB -e {remote_exp}/job_%J.err
+#SBATCH -J aperol_exp{n}
+#SBATCH --partition=debug
+#SBATCH --gres=gpu:1
+#SBATCH --mem=16G
+#SBATCH --time=23:59:00
+#SBATCH -n 1
+#SBATCH -o /scratch/yqw/aperol/scripts/md17/experiments/{n}/job_%j.log
+#SBATCH -e /scratch/yqw/aperol/scripts/md17/experiments/{n}/job_%j.err
 
 set -euo pipefail
-source ~/.bashrc
-export PYTHONPATH=${ADONIS_CLUSTER_WORK_DIR}
-conda run -n ${ADONIS_CLUSTER_CONDA_ENV} python -u {remote_exp}/run.py \
+export PYTHONPATH=/scratch/yqw/aperol
+conda run -n aperol python -u /scratch/yqw/aperol/scripts/md17/experiments/{n}/run.py \
   --n_epoch {k} \
-  --checkpoint {remote_exp}/checkpoint.pt
+  --checkpoint /scratch/yqw/aperol/scripts/md17/experiments/{n}/checkpoint.pt
 echo APEROL_JOB_DONE
 EOF
-"
 
-# Submit — must use bash -l -c so LSF binaries are in PATH
-ssh -o BatchMode=yes -o ConnectTimeout=15 ${ADONIS_CLUSTER_HOST} bash -l -c \
-  '"bsub < {remote_exp}/job.sh"'
+# Submit
+sbatch ${ADONIS_CLUSTER_WORK_DIR}/scripts/md17/experiments/{n}/job.sh
 
 # Check job status
-ssh -o BatchMode=yes -o ConnectTimeout=15 ${ADONIS_CLUSTER_HOST} bash -l -c \
-  '"bjobs -noheader -o stat {job_id} 2>/dev/null || bhist -noheader -o stat {job_id} 2>/dev/null | head -1"'
-
-# Sync results back locally — always do this before reading metrics or branching
-rsync -az --exclude=job.sh \
-  ${ADONIS_CLUSTER_HOST}:${ADONIS_CLUSTER_WORK_DIR}/scripts/md17/experiments/{n}/ \
-  scripts/md17/experiments/{n}/
+squeue -j {job_id} --noheader -o "%T" 2>/dev/null || \
+  sacct -j {job_id} --noheader -o State --parsable2 2>/dev/null | head -1
 ```
 
-**Note on `conda run` in job.sh:** Use `conda run -n {env}` rather than `conda activate` — the latter requires an interactive shell and will silently fail in BSub jobs.
+**Note on the `debug` partition:** Only one job can run at a time. Never submit a new job while one is already queued or running — always wait for the current job to finish first.
+
+**Note on `conda run` in job.sh:** Use `conda run -n {env}` rather than `conda activate` — the latter requires an interactive shell and will silently fail in SLURM jobs.
 
 ---
