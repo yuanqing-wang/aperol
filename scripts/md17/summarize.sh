@@ -6,33 +6,8 @@
 
 set -euo pipefail
 
-PYTHON_SCRIPT='
-import os, json, glob, sys
-
-exp_dir = sys.argv[1]
-exps = sorted(
-    [d for d in os.listdir(exp_dir) if os.path.isdir(os.path.join(exp_dir, d))],
-    key=lambda x: int(x)
-)
-
-hdr = f"{'Exp':>4}  {'BestVal':>8}  {'@ep':>4}  {'TrainF':>7}  {'Ratio':>6}  {'FinalVal':>9}  {'Ep':>3}"
-print(hdr)
-print("-" * len(hdr))
-
-for e in exps:
-    m = os.path.join(exp_dir, e, "metrics.jsonl")
-    if not os.path.exists(m):
-        continue
-    lines = [json.loads(l) for l in open(m)]
-    if not lines:
-        continue
-    best = min(lines, key=lambda x: x["val_force_error"])
-    last = lines[-1]
-    ratio = best["val_force_error"] / best["train_force_error"] if best["train_force_error"] > 0 else float("nan")
-    print(f"{e:>4}  {best[\"val_force_error\"]:>8.4f}  {best[\"epoch\"]:>4d}  "
-          f"{best[\"train_force_error\"]:>7.4f}  {ratio:>6.2f}  "
-          f"{last[\"val_force_error\"]:>9.4f}  {len(lines):>3d}")
-'
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PY="${SCRIPT_DIR}/summarize.py"
 
 EXP_DIR="${1:-}"
 
@@ -40,16 +15,22 @@ if [[ -z "${EXP_DIR}" ]]; then
   # Run on remote cluster via master socket
   SOCK="${HOME}/.config/submitter/sockets/trillium.sock"
   HOST="yqw@trillium-gpu.scinet.utoronto.ca"
-  REMOTE_DIR="/scratch/yqw/aperol/scripts/md17/experiments"
+  REMOTE_BASE="/scratch/yqw/aperol"
+  REMOTE_PY="${REMOTE_BASE}/scripts/md17/summarize.py"
+  REMOTE_EXP="${REMOTE_BASE}/scripts/md17/experiments"
 
   if [[ ! -S "${SOCK}" ]]; then
     echo "Not connected to trillium. Run 'submitter connect' first." >&2
     exit 1
   fi
 
+  # Upload the Python script and run it remotely
+  scp -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes \
+    "${PY}" "${HOST}:${REMOTE_PY}" 2>/dev/null
+
   ssh -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes "${HOST}" \
-    "python3 -c '$( echo "${PYTHON_SCRIPT}" | sed "s/'/'\'''/g" )' '${REMOTE_DIR}'"
+    "python3 '${REMOTE_PY}' '${REMOTE_EXP}'"
 
 else
-  python3 -c "${PYTHON_SCRIPT}" "${EXP_DIR}"
+  python3 "${PY}" "${EXP_DIR}"
 fi
