@@ -40,13 +40,15 @@
 - **Config:** Load exp5/best_checkpoint.pt (8.57), fresh LR=1e-5, StepLR(step_size=20, gamma=0.5), 80 epochs.
 - **Takeaway:** Only ~6% improvement from exp5's 8.57. The 80-epoch schedule doesn't deplete LR fully (only 4 decays). Exp 7 uses 200 epochs for more thorough optimization.
 
-## Exp 7 — Fifth optimizer reset from Exp 6/best_checkpoint (RUNNING, job 426798)
-- **Config:** Load exp6/best_checkpoint.pt (8.03), fresh LR=1e-5, StepLR(step_size=20, gamma=0.5), **200 epochs** (2:00:00 time limit).
-- **200 epochs = 10 LR decays**: LR goes 1e-5 → ~9.8e-9 (fully depleted!).
-- **Expected:** Much larger improvement per reset than exp 6's ~6%. Possibly 25-35% → val_force ~5.2-6.0.
+## Exp 7 — Fifth optimizer reset from Exp 6/best_checkpoint
+- **Result:** val_force=7.28 (ep77, best), final=7.32 (ep199). Train=3.26. Ratio=2.23. 200 epochs.
+- **Config:** Load exp6/best_checkpoint.pt (8.03), fresh LR=1e-5, StepLR(step_size=20, gamma=0.5).
+- **Takeaway:** 9.3% improvement from exp6 (8.03→7.28). 200 epochs significantly better than 80-epoch resets.
 
-## Exp 8 — Planned (job.sh ready, 200 epochs)
-- **Config:** Load exp7/best_checkpoint.pt → expected val_force ~3.4-4.5
+## Exp 8 — Sixth optimizer reset from Exp 7/best_checkpoint
+- **Result:** val_force=6.63 (ep128, best), final=6.64 (ep199). Train=2.54. Ratio=2.61. 200 epochs.
+- **Config:** Load exp7/best_checkpoint.pt (7.28), fresh LR=1e-5, StepLR(step_size=20, gamma=0.5).
+- **Takeaway:** 8.9% improvement (7.28→6.63). Slow diminishing returns in chain A.
 
 ## Chain A summary (no sender broadcast): Exp 1→2→4→5→6→7→8→10
 | Exp | From | BestVal | Reset# |
@@ -58,7 +60,8 @@
 | 6 | exp5 | 8.0 | 4 |
 | 7 | exp6 | 7.28 | 5 |
 | 8 | exp7 | 6.63 | 6 |
-| 10* | exp8 | ~6.0 | 7 (chain A restart) |
+| 10 | exp8 | 6.07 | 7 (chain A restart from exp8) |
+| 11 | exp10 | 5.85 | 8 |
 
 Chain A requires ~9% reduction per reset. Target <1.0 needs ~20 more resets. Very slow.
 
