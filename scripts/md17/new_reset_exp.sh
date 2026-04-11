@@ -37,6 +37,7 @@ NEW=""
 RUN_SOURCE=""
 USE_FINAL_CKPT=0
 EXTRA_ARGS=""
+N_EPOCH=200  # default; override with --n-epochs N
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -48,6 +49,7 @@ while [[ $# -gt 0 ]]; do
     --clip-grad|--clip-norm) EXTRA_ARGS="${EXTRA_ARGS} --clip_grad_norm $2"; shift 2 ;;
     --adamw)          EXTRA_ARGS="${EXTRA_ARGS} --optimizer adamw"; shift ;;
     --plateau)        EXTRA_ARGS="${EXTRA_ARGS} --scheduler plateau"; shift ;;
+    --n-epochs)       N_EPOCH="$2"; shift 2 ;;
     *) NEW="$1"; shift ;;
   esac
 done
@@ -127,7 +129,7 @@ if [ ! -f "${INIT_FROM}" ]; then
 fi
 
 conda run -n aperol python -u ${REMOTE_NEW}/run.py \\
-  --n_epoch 200 \\
+  --n_epoch ${N_EPOCH} \\
   --learning_rate 1e-5 \\
   --scheduler_step 20 \\
   --init_from ${INIT_FROM} \\
