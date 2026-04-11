@@ -24,14 +24,11 @@ if [[ $# -eq 0 ]]; then
 fi
 
 # Pre-flight: verify all job.sh files exist on cluster before starting
-SOCK="${HOME}/.config/submitter/sockets/trillium.sock"
-HOST="yqw@trillium-gpu.scinet.utoronto.ca"
 echo "Pre-flight check: verifying job.sh files on cluster ..."
 missing=0
 for n in "$@"; do
   job_sh="${REMOTE_BASE}/${n}/job.sh"
-  if ! ssh -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes "${HOST}" \
-       "test -f '${job_sh}'" 2>/dev/null; then
+  if ! "${SUBMITTER}" run-cmd "${CLUSTER}" "test -f '${job_sh}'" 2>/dev/null; then
     echo "  MISSING: ${job_sh}" >&2
     missing=1
   else
