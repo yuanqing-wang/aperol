@@ -38,6 +38,7 @@ RUN_SOURCE=""
 USE_FINAL_CKPT=0
 EXTRA_ARGS=""
 N_EPOCH=200  # default; override with --n-epochs N
+DRY_RUN=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -50,6 +51,7 @@ while [[ $# -gt 0 ]]; do
     --adamw)          EXTRA_ARGS="${EXTRA_ARGS} --optimizer adamw"; shift ;;
     --plateau)        EXTRA_ARGS="${EXTRA_ARGS} --scheduler plateau"; shift ;;
     --n-epochs)       N_EPOCH="$2"; shift 2 ;;
+    --dry-run|-n)     DRY_RUN=1; shift ;;
     *) NEW="$1"; shift ;;
   esac
 done
@@ -85,6 +87,16 @@ if "${SUBMITTER}" run-cmd "${CLUSTER}" "test -f '${REMOTE_NEW}/checkpoint.pt'" 2
     echo "  Non-interactive mode — aborting to avoid overwrite. Remove checkpoint first." >&2
     exit 1
   fi
+fi
+
+if [[ "${DRY_RUN}" == "1" ]]; then
+  echo "DRY RUN — would create exp${NEW}:"
+  echo "  init_from:  ${INIT_FROM}"
+  echo "  run.py from: ${RUN_SOURCE}"
+  echo "  n_epochs:   ${N_EPOCH}"
+  [[ -n "${EXTRA_ARGS}" ]] && echo "  extra_args: ${EXTRA_ARGS}"
+  echo "  Submit with: submitter submit-remote trillium ${REMOTE_NEW}/job.sh"
+  exit 0
 fi
 
 echo "Creating exp${NEW} (optimizer reset from exp${PREV})..."
