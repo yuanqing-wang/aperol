@@ -178,8 +178,18 @@ def main(exp_dir: str, running: str = "") -> None:
                     bplus_n = math.ceil(
                         math.log(target / chain_bests["B+"]) / math.log(1 - bplus_avg)
                     )
+                    # Build projected trajectory
+                    trajectory = [chain_bests["B+"]]
+                    v = chain_bests["B+"]
+                    while v > target and len(trajectory) <= bplus_n + 1:
+                        v = v * (1 - bplus_avg)
+                        trajectory.append(v)
+                    traj_str = " → ".join(f"{v:.1f}" for v in trajectory[:8])
+                    if len(trajectory) > 8:
+                        traj_str += f" → ... → {trajectory[-1]:.2f}"
                     print(f"  B+ avg: ~{bplus_avg * 100:.1f}%/reset → ~{bplus_n} more resets "
-                          f"(~{bplus_n * mins_per_reset // 60}h) from current best {chain_bests['B+']:.4f}")
+                          f"(~{bplus_n * mins_per_reset // 60}h)")
+                    print(f"  B+ projected: {traj_str} ({'✓' if trajectory[-1] < target else '✗'})")
 
 
 if __name__ == "__main__":
