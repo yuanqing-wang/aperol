@@ -41,11 +41,9 @@ done
 [[ -z "${START_EXP}" ]] && { echo "Usage: $0 <start_exp> [--target <val>] [--max <n>] [--use-run <n>] [--next <n>] [--use-final-ckpt]" >&2; exit 1; }
 
 # Pre-flight: verify the start experiment has a checkpoint (must be finished)
-SOCK="${HOME}/.config/submitter/sockets/trillium.sock"
-HOST="yqw@trillium-gpu.scinet.utoronto.ca"
 START_CKPT="${REMOTE_BASE}/${START_EXP}/best_checkpoint.pt"
 START_CKPT_ALT="${REMOTE_BASE}/${START_EXP}/checkpoint.pt"
-if ! ssh -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes "${HOST}" \
+if ! "${SUBMITTER}" run-cmd "${CLUSTER}" \
     "test -f '${START_CKPT}' || test -f '${START_CKPT_ALT}'" 2>/dev/null; then
   echo "ERROR: exp${START_EXP} has no checkpoint. Make sure it has completed before running auto-chain." >&2
   exit 1
@@ -99,12 +97,10 @@ for ((i = 1; i <= MAX_NEW; i++)); do
   # Show current summary
   bash "${SUMMARIZE}" 2>/dev/null || true
 
-  # Check if we've reached the target val_force
-  SOCK="${HOME}/.config/submitter/sockets/trillium.sock"
-  HOST="yqw@trillium-gpu.scinet.utoronto.ca"
-  best_val=$(ssh -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes "${HOST}" \
+  # Check if we've reached the target val_force (use submitter run-cmd, not raw SSH)
+  best_val=$("${SUBMITTER}" run-cmd "${CLUSTER}" \
     "python3 -c \"
-import json, os
+import json
 m = '${REMOTE_BASE}/${NEW}/metrics.jsonl'
 lines = [json.loads(l) for l in open(m)]
 print(min(l['val_force_error'] for l in lines))
