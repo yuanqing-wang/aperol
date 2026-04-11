@@ -31,11 +31,16 @@ PREV="$1"; shift
 NEW=""
 RUN_SOURCE=""
 USE_FINAL_CKPT=0
+EXTRA_ARGS=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --use-run)        RUN_SOURCE="$2"; shift 2 ;;
     --use-final-ckpt) USE_FINAL_CKPT=1; shift ;;
+    --extra-args)     EXTRA_ARGS="$2"; shift 2 ;;
+    --weight-noise)   EXTRA_ARGS="${EXTRA_ARGS} --weight_noise_std $2"; shift 2 ;;
+    --adamw)          EXTRA_ARGS="${EXTRA_ARGS} --optimizer adamw"; shift ;;
+    --plateau)        EXTRA_ARGS="${EXTRA_ARGS} --scheduler plateau"; shift ;;
     *) NEW="$1"; shift ;;
   esac
 done
@@ -116,7 +121,7 @@ conda run -n aperol python -u ${REMOTE_NEW}/run.py \\
   --learning_rate 1e-5 \\
   --scheduler_step 20 \\
   --init_from ${INIT_FROM} \\
-  --checkpoint ${REMOTE_NEW}/checkpoint.pt
+  --checkpoint ${REMOTE_NEW}/checkpoint.pt${EXTRA_ARGS:+ ${EXTRA_ARGS}}
 echo APEROL_JOB_DONE
 EOF
 
