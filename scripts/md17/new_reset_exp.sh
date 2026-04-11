@@ -24,23 +24,31 @@ fi
 PREV="$1"; shift
 NEW=""
 RUN_SOURCE=""
+USE_FINAL_CKPT=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --use-run) RUN_SOURCE="$2"; shift 2 ;;
+    --use-run)        RUN_SOURCE="$2"; shift 2 ;;
+    --use-final-ckpt) USE_FINAL_CKPT=1; shift ;;
     *) NEW="$1"; shift ;;
   esac
 done
 [[ -z "${NEW}" ]] && NEW=$(( PREV + 1 ))
 [[ -z "${RUN_SOURCE}" ]] && RUN_SOURCE="${PREV}"
 
-# Prefer best_checkpoint.pt over checkpoint.pt
-INIT_FROM="${REMOTE_BASE}/${PREV}/best_checkpoint.pt"
-# Check if best_checkpoint exists on cluster
-if ! ssh -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes "${HOST}" \
-    "test -f '${INIT_FROM}'" 2>/dev/null; then
+# Prefer best_checkpoint.pt over checkpoint.pt, unless --use-final-ckpt is set
+# (use --use-final-ckpt if best_checkpoint.pt may be corrupt from a failed prior job)
+if [[ "${USE_FINAL_CKPT}" == "1" ]]; then
   INIT_FROM="${REMOTE_BASE}/${PREV}/checkpoint.pt"
-  echo "Note: best_checkpoint.pt not found for exp${PREV}, using checkpoint.pt"
+  echo "Note: using final checkpoint.pt (not best_checkpoint.pt)"
+else
+  INIT_FROM="${REMOTE_BASE}/${PREV}/best_checkpoint.pt"
+  # Check if best_checkpoint exists on cluster
+  if ! ssh -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes "${HOST}" \
+      "test -f '${INIT_FROM}'" 2>/dev/null; then
+    INIT_FROM="${REMOTE_BASE}/${PREV}/checkpoint.pt"
+    echo "Note: best_checkpoint.pt not found for exp${PREV}, using checkpoint.pt"
+  fi
 fi
 
 REMOTE_NEW="${REMOTE_BASE}/${NEW}"
