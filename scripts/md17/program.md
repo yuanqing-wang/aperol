@@ -125,8 +125,10 @@ Creates each next experiment via `new_reset_exp.sh`, submits it, waits, checks v
 
 **Show a summary table** of all experiment results (includes chain label A/B/B+):
 ```bash
-bash scripts/md17/summarize.sh          # one-shot
-bash scripts/md17/summarize.sh --watch  # refresh every 30s (Ctrl+C to stop)
+bash scripts/md17/summarize.sh                        # one-shot
+bash scripts/md17/summarize.sh --watch                # refresh every 30s (Ctrl+C to stop)
+bash scripts/md17/summarize.sh --watch --interval 10  # custom interval (seconds)
+bash scripts/md17/summarize.sh --watch --no-clear      # don't clear terminal between refreshes
 ```
 
 **Evaluate a single checkpoint** (quick, no training):
