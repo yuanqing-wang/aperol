@@ -12,9 +12,9 @@
 ---
 
 ## Exp 1 — Best-known architecture from scratch (n_tr=n_vl=1000)
-- **Status:** Running (job 426691, Trillium).
+- **Status:** Running (Trillium). Fast convergence with n_tr=1000: ~20s/epoch.
 - **Config:** DualPairBaseline + AngleToEdge + VelocityNormToNode + residuals, node=128, depth=5, LR=3e-4, StepLR(10, 0.5).
-- **Result:** TBD
+- **Trend (first 5 epochs):** val_force: 760→442→247→150→108 (rapid early drop)
 
 ---
 
