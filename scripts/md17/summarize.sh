@@ -1,10 +1,38 @@
 #!/bin/bash
-# Show best and latest val_force for each experiment directory.
+# Show a summary table of all experiment results.
 # Usage: bash scripts/md17/summarize.sh [experiment_dir]
 # Default: reads from /scratch/yqw/aperol/scripts/md17/experiments/ on trillium via SSH.
 # Or: bash scripts/md17/summarize.sh ./experiments  (local directory)
 
 set -euo pipefail
+
+PYTHON_SCRIPT='
+import os, json, glob, sys
+
+exp_dir = sys.argv[1]
+exps = sorted(
+    [d for d in os.listdir(exp_dir) if os.path.isdir(os.path.join(exp_dir, d))],
+    key=lambda x: int(x)
+)
+
+hdr = f"{'Exp':>4}  {'BestVal':>8}  {'@ep':>4}  {'TrainF':>7}  {'Ratio':>6}  {'FinalVal':>9}  {'Ep':>3}"
+print(hdr)
+print("-" * len(hdr))
+
+for e in exps:
+    m = os.path.join(exp_dir, e, "metrics.jsonl")
+    if not os.path.exists(m):
+        continue
+    lines = [json.loads(l) for l in open(m)]
+    if not lines:
+        continue
+    best = min(lines, key=lambda x: x["val_force_error"])
+    last = lines[-1]
+    ratio = best["val_force_error"] / best["train_force_error"] if best["train_force_error"] > 0 else float("nan")
+    print(f"{e:>4}  {best[\"val_force_error\"]:>8.4f}  {best[\"epoch\"]:>4d}  "
+          f"{best[\"train_force_error\"]:>7.4f}  {ratio:>6.2f}  "
+          f"{last[\"val_force_error\"]:>9.4f}  {len(lines):>3d}")
+'
 
 EXP_DIR="${1:-}"
 
@@ -20,45 +48,8 @@ if [[ -z "${EXP_DIR}" ]]; then
   fi
 
   ssh -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes "${HOST}" \
-    "$(cat <<'EOF'
-python3 -c "
-import os, json, glob
-
-exp_dir = '/scratch/yqw/aperol/scripts/md17/experiments'
-exps = sorted([d for d in os.listdir(exp_dir) if os.path.isdir(os.path.join(exp_dir, d))], key=int)
-
-print(f'{'Exp':>5}  {'Best val_force':>14}  {'@epoch':>6}  {'Final val_force':>15}  {'Epochs':>6}')
-print('-' * 58)
-
-for e in exps:
-    m = os.path.join(exp_dir, e, 'metrics.jsonl')
-    if not os.path.exists(m): continue
-    lines = [json.loads(l) for l in open(m)]
-    if not lines: continue
-    best = min(lines, key=lambda x: x['val_force_error'])
-    last = lines[-1]
-    print(f'{e:>5}  {best[\"val_force_error\"]:>14.4f}  {best[\"epoch\"]:>6d}  {last[\"val_force_error\"]:>15.4f}  {len(lines):>6d}')
-"
-EOF
-)"
+    "python3 -c '$( echo "${PYTHON_SCRIPT}" | sed "s/'/'\'''/g" )' '${REMOTE_DIR}'"
 
 else
-  # Local mode
-  python3 -c "
-import os, json
-
-exps = sorted([d for d in os.listdir('${EXP_DIR}') if os.path.isdir(os.path.join('${EXP_DIR}', d))], key=int)
-
-print(f\"{'Exp':>5}  {'Best val_force':>14}  {'@epoch':>6}  {'Final val_force':>15}  {'Epochs':>6}\")
-print('-' * 58)
-
-for e in exps:
-    m = os.path.join('${EXP_DIR}', e, 'metrics.jsonl')
-    if not os.path.exists(m): continue
-    lines = [json.loads(l) for l in open(m)]
-    if not lines: continue
-    best = min(lines, key=lambda x: x['val_force_error'])
-    last = lines[-1]
-    print(f\"{e:>5}  {best['val_force_error']:>14.4f}  {best['epoch']:>6d}  {last['val_force_error']:>15.4f}  {len(lines):>6d}\")
-"
+  python3 -c "${PYTHON_SCRIPT}" "${EXP_DIR}"
 fi
