@@ -105,6 +105,12 @@ bash scripts/md17/run_chain.sh 6 7 8
 ```
 This uses `submitter poll` + `submit-remote` to run experiments sequentially without needing pending slots.
 
+**Fully automate optimizer resets until target val_force** (hands-off):
+```bash
+bash scripts/md17/run_auto_chain.sh 10 --target 1.0 --max 20
+```
+Creates each next experiment via `new_reset_exp.sh`, submits it, waits, checks val_force, and stops automatically when the target is reached. Run after the current experiment has a `best_checkpoint.pt`.
+
 **Show a summary table** of all experiment results:
 ```bash
 bash scripts/md17/summarize.sh
