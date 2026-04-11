@@ -29,3 +29,15 @@ class State:
             position=self.position.detach(),
             velocity=self.velocity.detach(),
         )
+
+    def __repr__(self) -> str:
+        def _fmt(t: torch.Tensor) -> str:
+            return f"{tuple(t.shape)} {t.dtype} {t.device}"
+        return (
+            f"State(\n"
+            f"  node    : {_fmt(self.node)}\n"
+            f"  edge    : {_fmt(self.edge)}\n"
+            f"  position: {_fmt(self.position)}\n"
+            f"  velocity: {_fmt(self.velocity)}\n"
+            f")"
+        )
