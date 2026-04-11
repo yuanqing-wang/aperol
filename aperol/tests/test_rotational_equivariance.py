@@ -12,6 +12,7 @@ from aperol.test_utils import (
 from aperol.utils import ProjectionIn, ProjectionOut
 from aperol.module import Module
 from aperol.endomorphism import NodeEndomorphism, EdgeEndomorphism, LazySquareLinear, LazyLayerNorm
+from aperol.layers import EdgeToNodeMean, PositionToEdgeERBFSmearing
 from aperol.state import State
 from aperol.layers import (
     AngleToEdgeMultiChannel,
@@ -68,7 +69,12 @@ def test_layers_are_rotationally_equivariant(name, factory):
 
 
 def _make_simple_model():
-    """Minimal Model for testing: 1 layer, small features."""
+    """Minimal Model for testing that connects positions to energy.
+
+    The chain position→edge→node→energy is needed so forces can be computed
+    via autograd. Uses: ProjectionIn → PositionToEdgeERBFSmearing → EdgeToNodeMean
+    → ProjectionOut.
+    """
 
     def FeedForward():
         return torch.nn.Sequential(LazySquareLinear(), LazyLayerNorm(), torch.nn.SiLU())
@@ -76,11 +82,13 @@ def _make_simple_model():
     class SimpleLayer(Module):
         def __init__(self):
             super().__init__()
-            self.node_endo = NodeEndomorphism(FeedForward())
-            self.edge_endo = EdgeEndomorphism(FeedForward())
+            self.pos_to_edge = PositionToEdgeERBFSmearing()
+            self.edge_to_node = EdgeToNodeMean(FeedForward())
 
         def forward(self, state: State) -> State:
-            return self.edge_endo(self.node_endo(state))
+            state = self.pos_to_edge(state)
+            state = self.edge_to_node(state)
+            return state
 
     class SimpleModel(Module):
         def __init__(self):
