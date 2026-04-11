@@ -24,17 +24,19 @@ TARGET=1.0
 MAX_NEW=30
 START_EXP=""
 USE_RUN=""
+NEXT_EXP=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --target)  TARGET="$2";  shift 2 ;;
-    --max)     MAX_NEW="$2"; shift 2 ;;
-    --use-run) USE_RUN="$2"; shift 2 ;;
+    --target)  TARGET="$2";   shift 2 ;;
+    --max)     MAX_NEW="$2";  shift 2 ;;
+    --use-run) USE_RUN="$2";  shift 2 ;;
+    --next)    NEXT_EXP="$2"; shift 2 ;;
     *)         START_EXP="$1"; shift ;;
   esac
 done
 
-[[ -z "${START_EXP}" ]] && { echo "Usage: $0 <start_exp> [--target <val>] [--max <n>] [--use-run <arch_exp>]" >&2; exit 1; }
+[[ -z "${START_EXP}" ]] && { echo "Usage: $0 <start_exp> [--target <val>] [--max <n>] [--use-run <arch_exp>] [--next <first_new_exp_n>]" >&2; exit 1; }
 
 # Pre-flight: verify the start experiment has a checkpoint (must be finished)
 SOCK="${HOME}/.config/submitter/sockets/trillium.sock"
@@ -51,8 +53,16 @@ echo "Auto-chain: start=exp${START_EXP}, target val_force < ${TARGET}, max ${MAX
 echo ""
 
 PREV="${START_EXP}"
+# On the first iteration, NEW can be overridden with --next
+FIRST_ITER=1
 for ((i = 1; i <= MAX_NEW; i++)); do
-  NEW=$(( PREV + 1 ))
+  if [[ "${FIRST_ITER}" == "1" && -n "${NEXT_EXP}" ]]; then
+    NEW="${NEXT_EXP}"
+    FIRST_ITER=0
+  else
+    NEW=$(( PREV + 1 ))
+    FIRST_ITER=0
+  fi
   echo "=== Creating exp${NEW} (reset from exp${PREV}) ==="
 
   # Create the new experiment (optionally pin to a specific run.py architecture)
