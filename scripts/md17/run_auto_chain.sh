@@ -29,17 +29,19 @@ USE_FINAL_CKPT=""
 
 USE_BASE=""
 WEIGHT_NOISE=""
+POLL_TIMEOUT=9000  # 2.5h — safety net for 200-epoch jobs (~50min expected)
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --target)         TARGET="$2";        shift 2 ;;
-    --max)            MAX_NEW="$2";       shift 2 ;;
-    --use-run)        USE_RUN="$2";       shift 2 ;;
-    --next)           NEXT_EXP="$2";      shift 2 ;;
-    --use-final-ckpt) USE_FINAL_CKPT=1;   shift   ;;
-    --use-base)       USE_BASE=1;         shift   ;;
-    --weight-noise)   WEIGHT_NOISE="$2";  shift 2 ;;
-    *)                START_EXP="$1";     shift   ;;
+    --target)         TARGET="$2";          shift 2 ;;
+    --max)            MAX_NEW="$2";         shift 2 ;;
+    --use-run)        USE_RUN="$2";         shift 2 ;;
+    --next)           NEXT_EXP="$2";        shift 2 ;;
+    --use-final-ckpt) USE_FINAL_CKPT=1;     shift   ;;
+    --use-base)       USE_BASE=1;           shift   ;;
+    --weight-noise)   WEIGHT_NOISE="$2";    shift 2 ;;
+    --poll-timeout)   POLL_TIMEOUT="$2";    shift 2 ;;
+    *)                START_EXP="$1";       shift   ;;
   esac
 done
 
@@ -92,13 +94,13 @@ for ((i = 1; i <= MAX_NEW; i++)); do
     exit 1
   fi
 
-  echo "Job ${job_id} submitted for exp${NEW}. Polling every ${POLL_INTERVAL}s (timeout: 9000s) ..."
+  echo "Job ${job_id} submitted for exp${NEW}. Polling every ${POLL_INTERVAL}s (timeout: ${POLL_TIMEOUT}s) ..."
 
   poll_exit=0
-  "${SUBMITTER}" poll "${CLUSTER}" "${job_id}" -i "${POLL_INTERVAL}" -t 9000 || poll_exit=$?
+  "${SUBMITTER}" poll "${CLUSTER}" "${job_id}" -i "${POLL_INTERVAL}" -t "${POLL_TIMEOUT}" || poll_exit=$?
 
   if [[ $poll_exit -eq 2 ]]; then
-    echo "WARNING: exp${NEW} (job ${job_id}) timed out after 9000s — still running?" >&2
+    echo "WARNING: exp${NEW} (job ${job_id}) timed out after ${POLL_TIMEOUT}s — still running?" >&2
     echo "Check status with: submitter running ${CLUSTER}" >&2
     exit 2
   elif [[ $poll_exit -ne 0 ]]; then
