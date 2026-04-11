@@ -4,7 +4,7 @@ from .state import State
 from .module import Module
 from .utils import ProjectionIn, ProjectionOut
 from .data.md17 import load_md17, collate_md17, MD17Sample
-from .endomorphism import LazySquareLinear, LazyLayerNorm, LazySwiGLU, LazySelfAttention
+from .endomorphism import LazySquareLinear, LazyResidualLinear, LazyLayerNorm, LazySwiGLU, LazySelfAttention
 from .endomorphism import NodeEndomorphism, EdgeEndomorphism
 from .layers import (
     NodeToEdgeBroadcast, NodeToEdgeSenderBroadcast,
@@ -22,7 +22,7 @@ __all__ = [
     "ProjectionIn", "ProjectionOut",
     "load_md17", "collate_md17", "MD17Sample",
     # Endomorphisms
-    "LazySquareLinear", "LazyLayerNorm", "LazySwiGLU", "LazySelfAttention",
+    "LazySquareLinear", "LazyResidualLinear", "LazyLayerNorm", "LazySwiGLU", "LazySelfAttention",
     "NodeEndomorphism", "EdgeEndomorphism",
     # Layers
     "NodeToEdgeBroadcast", "NodeToEdgeSenderBroadcast",

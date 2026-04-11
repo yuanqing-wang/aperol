@@ -37,6 +37,34 @@ class EdgeEndomorphism(FieldEndomorphism):
 # =============================================================================
 
 
+class LazyResidualLinear(Endomorphism):
+    """Lazy residual linear: output = x + W·x.
+
+    Initialized to identity (W=0), learns the deviation from identity.
+    More stable than LazySquareLinear at initialization since it starts
+    as a pass-through and gradually learns useful transformations.
+
+    Examples
+    --------
+    >>> layer = LazyResidualLinear()
+    >>> x = torch.randn(5, 8)
+    >>> y = layer(x)
+    >>> assert y.shape == x.shape
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.weight = torch.nn.UninitializedParameter()
+
+    def initialize_parameters(self, x):
+        D = x.shape[-1]
+        self.weight.materialize((D, D))
+        torch.nn.init.zeros_(self.weight)  # starts as identity
+
+    def forward(self, x):
+        return x + x @ self.weight
+
+
 class LazySquareLinear(Endomorphism):
     """ Lazy linear layer, where the input feature equals output.
     

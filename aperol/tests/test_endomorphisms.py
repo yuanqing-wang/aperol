@@ -5,6 +5,7 @@ import torch
 
 from aperol.endomorphism import (
     LazyLayerNorm,
+    LazyResidualLinear,
     LazySelfAttention,
     LazySquareLinear,
     LazySwiGLU,
@@ -12,6 +13,7 @@ from aperol.endomorphism import (
 
 ENDOMORPHISMS = [
     ("LazySquareLinear", LazySquareLinear),
+    ("LazyResidualLinear", LazyResidualLinear),
     ("LazyLayerNorm", LazyLayerNorm),
     ("LazySwiGLU", LazySwiGLU),
     ("LazySelfAttention", LazySelfAttention),
