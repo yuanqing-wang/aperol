@@ -45,15 +45,13 @@ run_once() {
     fi
 
     # Use the repo's copy of summarize.py (already on cluster via git pull).
-    # Fall back to scp upload if the remote file is missing.
-    if ! ssh -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes "${HOST}" \
-        "test -f '${REMOTE_PY}'" 2>/dev/null; then
+    # Fall back to upload if the remote file is missing.
+    if ! "${SUBMITTER}" run-cmd trillium "test -f '${REMOTE_PY}'" 2>/dev/null; then
       scp -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes \
         "${PY}" "${HOST}:${REMOTE_PY}" 2>/dev/null
     fi
 
-    ssh -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes "${HOST}" \
-      "python3 '${REMOTE_PY}' '${REMOTE_EXP}' '${RUNNING_EXP}'"
+    "${SUBMITTER}" run-cmd trillium "python3 '${REMOTE_PY}' '${REMOTE_EXP}' '${RUNNING_EXP}'"
   else
     python3 "${PY}" "${EXP_DIR}"
   fi
