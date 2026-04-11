@@ -28,6 +28,7 @@ NEXT_EXP=""
 USE_FINAL_CKPT=""
 
 USE_BASE=""
+WEIGHT_NOISE=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -37,11 +38,12 @@ while [[ $# -gt 0 ]]; do
     --next)           NEXT_EXP="$2";      shift 2 ;;
     --use-final-ckpt) USE_FINAL_CKPT=1;   shift   ;;
     --use-base)       USE_BASE=1;         shift   ;;
+    --weight-noise)   WEIGHT_NOISE="$2";  shift 2 ;;
     *)                START_EXP="$1";     shift   ;;
   esac
 done
 
-[[ -z "${START_EXP}" ]] && { echo "Usage: $0 <start_exp> [--target <val>] [--max <n>] [--use-run <n>] [--next <n>] [--use-final-ckpt] [--use-base]" >&2; exit 1; }
+[[ -z "${START_EXP}" ]] && { echo "Usage: $0 <start_exp> [--target <val>] [--max <n>] [--use-run <n>] [--next <n>] [--use-final-ckpt] [--use-base] [--weight-noise N]" >&2; exit 1; }
 
 # Pre-flight: verify the start experiment has a checkpoint (must be finished)
 START_CKPT="${REMOTE_BASE}/${START_EXP}/best_checkpoint.pt"
@@ -73,6 +75,7 @@ for ((i = 1; i <= MAX_NEW; i++)); do
   [[ -n "${USE_RUN}" ]]        && RESET_ARGS+=(--use-run "${USE_RUN}")
   [[ -n "${USE_FINAL_CKPT}" ]] && RESET_ARGS+=(--use-final-ckpt)
   [[ -n "${USE_BASE}" ]]       && RESET_ARGS+=(--use-base)
+  [[ -n "${WEIGHT_NOISE}" ]]   && RESET_ARGS+=(--weight-noise "${WEIGHT_NOISE}")
   # Use ${RESET_ARGS[@]:+"${RESET_ARGS[@]}"} to safely expand empty arrays in bash 3.x
   bash "${NEW_RESET}" "${PREV}" "${NEW}" ${RESET_ARGS[@]:+"${RESET_ARGS[@]}"}
 
