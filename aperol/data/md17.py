@@ -102,8 +102,10 @@ class MD17Dataset(Dataset):
         F = data["F"][perm]          # (n_samples, n_atoms, 3)
         z = data["z"]         # (n_atoms,)  atomic numbers, constant across frames
 
-        # normalize energy to zero mean / unit std
-        E = (E - E.mean()) / E.std()
+        # normalize energy to zero mean / unit std (over full dataset, before split)
+        energy_mean = float(E.mean())
+        energy_std  = float(E.std())
+        E = (E - energy_mean) / energy_std
 
         if indices is not None:
             R = R[indices]
@@ -113,6 +115,10 @@ class MD17Dataset(Dataset):
         self.position  = torch.tensor(R, dtype=torch.float32)   # (N, n_atoms, 3)
         self.energy    = torch.tensor(E, dtype=torch.float32)   # (N,)
         self.force     = torch.tensor(F, dtype=torch.float32)   # (N, n_atoms, 3)
+
+        # Store normalization constants so callers can convert back to kcal/mol
+        self.energy_mean = energy_mean  # float, kcal/mol
+        self.energy_std  = energy_std   # float, kcal/mol
 
         # one-hot encode atom types: (n_atoms, n_species)
         z_tensor = torch.tensor(z, dtype=torch.int64)
