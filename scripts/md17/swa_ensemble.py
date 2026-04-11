@@ -122,6 +122,7 @@ def evaluate(model, data: str = "malonaldehyde", n_tr: int = 1000, n_vl: int = 1
 
 
 def main():
+    global REMOTE_BASE  # must be declared before any use in this function
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("exp_nums", type=int, nargs="+", help="Experiment numbers to average")
     parser.add_argument("--save", action="store_true", help="Save the averaged checkpoint")
@@ -134,7 +135,6 @@ def main():
                         help="Use checkpoint.pt instead of best_checkpoint.pt")
     args = parser.parse_args()
 
-    global REMOTE_BASE
     if args.base_dir:
         REMOTE_BASE = args.base_dir
         sys.path.insert(0, REMOTE_BASE)
