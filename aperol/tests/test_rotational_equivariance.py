@@ -8,6 +8,7 @@ from aperol.test_utils import (
     check_layer,
 )
 from aperol.layers import (
+    AngleToEdgeMultiChannel,
     EdgeToNodeAttention,
     EdgeToNodeMax,
     EdgeToNodeMean,
@@ -43,6 +44,7 @@ LAYER_FACTORIES = [
     ("NodeToVelocityDamping", lambda: NodeToVelocityDamping(get_simple_endomorphism())),
     ("EdgeToPositionAggregation", lambda: EdgeToPositionAggregation(get_simple_endomorphism())),
     ("EdgeToVelocityAggregation", lambda: EdgeToVelocityAggregation(get_simple_endomorphism())),
+    ("AngleToEdgeMultiChannel", lambda: AngleToEdgeMultiChannel()),
 ]
 
 
