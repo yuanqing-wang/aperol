@@ -70,7 +70,10 @@ For optimizer-reset experiments, add `--init_from /scratch/yqw/aperol/scripts/md
 ssh ... 'sbatch /scratch/yqw/aperol/scripts/md17/experiments/{n}/job.sh'
 ```
 
-Choose `k` between 1 and 10. Use fewer epochs (1–2) to cheaply probe a new hypothesis; use more (up to 10) when a run looks promising. Training resumes from the checkpoint if it exists and appends to `metrics.jsonl` automatically.
+Choose `k` based on data size:
+- **n_tr=1000** (default): ~20s/epoch on Trillium GPU → use `k=80–100` to fill the 59-minute slot.
+- Probe a new hypothesis cheaply with `k=5`; use `k=80` when a run looks promising.
+Training resumes from the checkpoint if it exists and appends to `metrics.jsonl` automatically.
 
 **Only one job may be submitted at a time** (debug partition constraint). Always wait for the current job to finish before submitting the next.
 
@@ -163,6 +166,7 @@ submitter status                      # Check which clusters are connected
 submitter connect                     # Open master connections (interactive, MFA required)
 submitter watch trillium <jobid>      # Tail job stdout live (Ctrl+C to stop)
 submitter fetch trillium <jobid>      # Copy job log files to current directory
+submitter jobs trillium               # Show recent jobs (last 24h)
 ```
 
 **Note on the `debug` partition:** Only one job can run at a time. Never submit a new job while one is already queued or running — always wait for the current job to finish first.
