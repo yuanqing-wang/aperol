@@ -114,31 +114,30 @@ def check_model(
     try:
         # Energy invariance check
         with torch.no_grad():
-        energy = model(sample)
-        energy_r = model(sample_r)
-    _assert_allclose(energy, energy_r, name=f"{name}.energy", atol=atol, rtol=rtol)
+            energy = model(sample)
+            energy_r = model(sample_r)
+        _assert_allclose(energy, energy_r, name=f"{name}.energy", atol=atol, rtol=rtol)
 
-    # Force equivariance check: F(R·x) = R·F(x)
-    # Forces are -grad(energy, position); equivariance follows from energy
-    # invariance but checking it explicitly catches gradient-path bugs.
-    # Use enable_grad so this works even when called inside no_grad contexts.
-    with torch.enable_grad():
-        pos = sample.position.detach().requires_grad_(True)
-        pos_r = sample_r.position.detach().requires_grad_(True)
-        s = MD17Sample(position=pos, energy=sample.energy, force=sample.force, atom_type=sample.atom_type)
-        s_r = MD17Sample(position=pos_r, energy=sample_r.energy, force=sample_r.force, atom_type=sample_r.atom_type)
-        e = model(s)
-        e_r = model(s_r)
-        # allow_unused=True handles models whose energy doesn't depend on position
-        # (e.g. pure node/edge models). If unused, forces are zero — trivially equivariant.
-        _force = torch.autograd.grad(e.sum(), pos, create_graph=False, allow_unused=True)[0]
-        _force_r = torch.autograd.grad(e_r.sum(), pos_r, create_graph=False, allow_unused=True)[0]
+        # Force equivariance check: F(R·x) = R·F(x)
+        # Forces are -grad(energy, position); equivariance follows from energy
+        # invariance but checking it explicitly catches gradient-path bugs.
+        # Use enable_grad so this works even when called inside no_grad contexts.
+        with torch.enable_grad():
+            pos = sample.position.detach().requires_grad_(True)
+            pos_r = sample_r.position.detach().requires_grad_(True)
+            s = MD17Sample(position=pos, energy=sample.energy, force=sample.force, atom_type=sample.atom_type)
+            s_r = MD17Sample(position=pos_r, energy=sample_r.energy, force=sample_r.force, atom_type=sample_r.atom_type)
+            e = model(s)
+            e_r = model(s_r)
+            # allow_unused=True handles models whose energy doesn't depend on position
+            # (e.g. pure node/edge models). If unused, forces are zero — trivially equivariant.
+            _force = torch.autograd.grad(e.sum(), pos, create_graph=False, allow_unused=True)[0]
+            _force_r = torch.autograd.grad(e_r.sum(), pos_r, create_graph=False, allow_unused=True)[0]
         if _force is None:
             return  # position not in graph — force equivariance trivially satisfied
         force, force_r = -_force, -_force_r
         # Positions rotate as x_r = x @ r.T; forces inherit the same transformation.
         _assert_allclose(force_r, force @ r.T, name=f"{name}.force", atol=atol, rtol=rtol)
-
     finally:
         if was_training:
             model.train()
