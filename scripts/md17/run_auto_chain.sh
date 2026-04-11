@@ -31,6 +31,7 @@ USE_BASE=""
 WEIGHT_NOISE=""
 N_EPOCHS=""
 POLL_TIMEOUT=9000  # 2.5h — safety net for 200-epoch jobs (~50min expected)
+DRY_RUN=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -43,6 +44,7 @@ while [[ $# -gt 0 ]]; do
     --weight-noise)   WEIGHT_NOISE="$2";    shift 2 ;;
     --n-epochs)       N_EPOCHS="$2";        shift 2 ;;
     --poll-timeout)   POLL_TIMEOUT="$2";    shift 2 ;;
+    --dry-run|-n)     DRY_RUN=1;            shift   ;;
     *)                START_EXP="$1";       shift   ;;
   esac
 done
@@ -81,8 +83,15 @@ for ((i = 1; i <= MAX_NEW; i++)); do
   [[ -n "${USE_BASE}" ]]       && RESET_ARGS+=(--use-base)
   [[ -n "${WEIGHT_NOISE}" ]]   && RESET_ARGS+=(--weight-noise "${WEIGHT_NOISE}")
   [[ -n "${N_EPOCHS}" ]]       && RESET_ARGS+=(--n-epochs "${N_EPOCHS}")
+  [[ "${DRY_RUN}" == "1" ]]   && RESET_ARGS+=(--dry-run)
   # Use ${RESET_ARGS[@]:+"${RESET_ARGS[@]}"} to safely expand empty arrays in bash 3.x
   bash "${NEW_RESET}" "${PREV}" "${NEW}" ${RESET_ARGS[@]:+"${RESET_ARGS[@]}"}
+
+  if [[ "${DRY_RUN}" == "1" ]]; then
+    echo "(dry run — skipping submission)"
+    PREV="${NEW}"
+    continue
+  fi
 
   echo ""
   echo "=== Submitting exp${NEW} ==="
