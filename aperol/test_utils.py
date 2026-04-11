@@ -106,8 +106,14 @@ def check_model(
         sample = get_random_sample()
     sample_r = rotate_sample(sample, r)
 
-    # Energy invariance check
-    with torch.no_grad():
+    # Switch to eval mode so stochastic layers (e.g. dropout) are deterministic.
+    # Restore the original training mode when done.
+    was_training = model.training
+    model.eval()
+
+    try:
+        # Energy invariance check
+        with torch.no_grad():
         energy = model(sample)
         energy_r = model(sample_r)
     _assert_allclose(energy, energy_r, name=f"{name}.energy", atol=atol, rtol=rtol)
@@ -127,11 +133,15 @@ def check_model(
         # (e.g. pure node/edge models). If unused, forces are zero — trivially equivariant.
         _force = torch.autograd.grad(e.sum(), pos, create_graph=False, allow_unused=True)[0]
         _force_r = torch.autograd.grad(e_r.sum(), pos_r, create_graph=False, allow_unused=True)[0]
-    if _force is None:
-        return  # position not in graph — force equivariance trivially satisfied
-    force, force_r = -_force, -_force_r
-    # Positions rotate as x_r = x @ r.T; forces inherit the same transformation.
-    _assert_allclose(force_r, force @ r.T, name=f"{name}.force", atol=atol, rtol=rtol)
+        if _force is None:
+            return  # position not in graph — force equivariance trivially satisfied
+        force, force_r = -_force, -_force_r
+        # Positions rotate as x_r = x @ r.T; forces inherit the same transformation.
+        _assert_allclose(force_r, force @ r.T, name=f"{name}.force", atol=atol, rtol=rtol)
+
+    finally:
+        if was_training:
+            model.train()
 
 
 def check_layer(
