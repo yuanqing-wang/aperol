@@ -113,10 +113,10 @@ Chain A requires ~9% reduction per reset. Target <1.0 needs ~20 more resets. Ver
 ## Exp 17 — Chain A (STAGED, next chain A reset after exp16)
 - **Status:** ready to submit; low priority given B+ progress
 
-## SWA Ensemble (diagnostic)
-- **Tried:** Averaging weights from exps 8, 10, 11, 12 → val_force=5.92
-- **vs best individual (exp 12):** 5.92 > 5.77 → **WORSE**
-- **Takeaway:** Chain A checkpoints are in different loss basins; weight averaging doesn't find a better consensus point. Sequential optimizer resets outperform SWA for this setting.
+## SWA Ensemble (diagnostic — applies to ALL chains)
+- **Chain A tried:** Averaging exps 8, 10, 11, 12 → val_force=5.92 vs best 5.77 → **WORSE**
+- **Chain B+ tried:** Averaging exps 13, 15 → val_force=14.86 vs best 13.19 → **WORSE**
+- **Takeaway:** Sequential optimizer resets always outperform SWA. Each reset finds a different local minimum in a different loss basin. Averaging across basins doesn't help.
 
 ---
 
