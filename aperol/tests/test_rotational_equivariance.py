@@ -117,3 +117,20 @@ def test_model_energy_invariant_and_force_equivariant():
         r = get_random_rotation_matrix()
         check_model(model, sample=sample, r=r, atol=1e-3, rtol=1e-3)
 
+
+def test_check_model_restores_training_mode():
+    """check_model should restore the model's original training mode."""
+    model = _make_simple_model()
+
+    # Start in train mode — check_model should put it back
+    model.train()
+    assert model.training
+    check_model(model)
+    assert model.training, "check_model should restore train mode"
+
+    # Start in eval mode — check_model should keep it
+    model.eval()
+    assert not model.training
+    check_model(model)
+    assert not model.training, "check_model should preserve eval mode"
+
