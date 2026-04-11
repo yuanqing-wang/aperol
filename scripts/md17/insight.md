@@ -71,10 +71,14 @@ Chain A requires ~9% reduction per reset. Target <1.0 needs ~20 more resets. Ver
 | 3 | scratch | 12.77 | 0 |
 
 **NOTE (CORRECTION):** Exp 9 was **not** chain B. Job 426833 log shows it loaded from
-`exp8/best_checkpoint.pt` (chain A). Exp9 achieved 6.22 as a chain A reset from exp8 (6.63→6.22 = 6.2%). The "51% improvement" was an error — it compared to exp3 (12.77), not the actual init point.
+`exp8/best_checkpoint.pt` (chain A). True chain B has NOT been run yet.
 
-True chain B (reset from exp3/best_checkpoint.pt with sender architecture) has NOT been run yet.
-Chain A is currently winning: exp11 best = 5.85, exp9 = 6.22, exp3 = 12.77.
+## Exp 13 — Bold B+ (sender+receiver + EdgeToPos/Vel + AngleToEdgeMultiChannel), fresh start
+- **Status:** Running (epoch ~142/200). BestVal=16.7 at ep125. Train=10.3. Ratio=1.62.
+- **Trend:** ep30:31.7→ep44:22.9→ep125:16.7. Still converging.
+- **vs exp3 (sender only):** exp3 reached 12.8 in 80 epochs. B+ is slower (~16.7 at ep125 vs exp3's 12.8 at ep70).
+- **vs exp1 (base):** exp1 reached 14.2 in 90 epochs. B+ is approaching similar territory.
+- **Takeaway:** More complex architecture (B+) doesn't necessarily converge faster. Will need optimizer resets to see full potential.
 
 ---
 
