@@ -132,6 +132,13 @@ def main(exp_dir: str, running: str = "") -> None:
         recent = improvements[-3:] if len(improvements) >= 3 else improvements
         recent_improvement = sum(recent) / len(recent) if recent else avg_improvement
 
+        # Per-chain bests
+        chain_bests: dict[str, float] = {}
+        for exp_n, v in best_vals_by_entry.items():
+            ch = _detect_chain(exp_dir, str(exp_n))
+            if ch not in chain_bests or v < chain_bests[ch]:
+                chain_bests[ch] = v
+
         if best_overall > target:
             n_overall = math.ceil(math.log(target / best_overall) / math.log(1 - avg_improvement))
             n_recent = math.ceil(math.log(target / best_overall) / math.log(1 - recent_improvement))
@@ -139,6 +146,12 @@ def main(exp_dir: str, running: str = "") -> None:
             pct_recent = recent_improvement * 100
             mins_per_reset = 67
             print(f"\nBest: {best_overall:.4f}  Target: <{target}")
+            # Show per-chain bests when multiple chains exist
+            if len(chain_bests) > 1:
+                chain_summary = "  |  ".join(
+                    f"Chain {ch}: {v:.4f}" for ch, v in sorted(chain_bests.items())
+                )
+                print(f"  Per chain: {chain_summary}")
             print(f"  Overall avg: ~{pct_avg:.1f}%/reset → ~{n_overall} resets "
                   f"(~{n_overall * mins_per_reset // 60}h)")
             print(f"  Recent (last 3): ~{pct_recent:.1f}%/reset → ~{n_recent} resets "
