@@ -84,6 +84,7 @@ def evaluate(ckpt_path: Path, data: str, n_tr: int, n_vl: int,
 
 
 def main():
+    global BASE  # must be declared before any use of BASE in this function
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("checkpoint", help="Path to checkpoint.pt or best_checkpoint.pt")
     parser.add_argument("--data", default="malonaldehyde")
@@ -93,7 +94,6 @@ def main():
     parser.add_argument("--base-dir", default=None, help=f"Override aperol base (default: {BASE})")
     args = parser.parse_args()
 
-    global BASE
     if args.base_dir:
         BASE = args.base_dir
         sys.path.insert(0, BASE)
