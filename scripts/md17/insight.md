@@ -89,6 +89,7 @@ Automated chain B starting from exp11 (uses `run_auto_chain.sh 9 --use-run 9 --n
 7b. **200-epoch resets (2h time limit) greatly outperform 80-epoch resets**: 200 epochs gives 10 full LR decay steps (1e-5→~1e-8), vs 4 steps for 80 epochs. Always prefer `--n_epoch 200 --time=2:00:00` for optimizer-reset experiments.
 8. **StepLR(20, 0.5)** for fine-tuning (vs step_size=10 for initial training from scratch).
 8b. **Pickle architecture mismatch**: When optimizer-reset run.py's `Layer` class differs from the init_from checkpoint (e.g., one has `NodeToEdgeSenderBroadcast`, the other doesn't), deserialization gives a Layer with missing attributes → `AttributeError` on first forward pass. Always copy run.py from the SAME chain (e.g., copy from exp8, not exp3, when continuing the exp1-chain resets).
+8c. **best_checkpoint.pt can be corrupt if a failed job ran first**: If a job FAILS during training, any best_checkpoint.pt it may have written (from a previous architecture) is WRONG. The final `checkpoint.pt` (epoch N) is safer because only successfully-completed jobs update it. If loading from `best_checkpoint.pt` fails, fall back to `checkpoint.pt`.
 9. **weight_decay=1e-4** hurts — raised train error without improving val.
 10. **CosineAnnealingWarmRestarts from scratch** is unstable.
 11. **4-body (dihedral) features** are numerically unstable early in training.
