@@ -115,17 +115,17 @@ def main(exp_dir: str, running: str = "") -> None:
         best_overall = min(best_vals_by_entry.values())
         target = 1.0
 
-        # Estimate improvement rate from consecutive chain A experiments (sorted by exp number)
+        # Estimate improvement rate from chain A experiments only (sorted by exp number)
         sorted_exps = sorted(best_vals_by_entry.keys())
         improvements = []
         prev_val = None
-        prev_exp = None
         for exp_n in sorted_exps:
+            chain = _detect_chain(exp_dir, str(exp_n))
             v = best_vals_by_entry[exp_n]
-            if prev_val is not None and v < prev_val:
+            if chain == "A" and prev_val is not None and v < prev_val:
                 improvements.append((prev_val - v) / prev_val)
-            prev_val = v
-            prev_exp = exp_n
+            if chain == "A":
+                prev_val = v  # only update prev from chain A
         avg_improvement = sum(improvements) / len(improvements) if improvements else 0.091
 
         if best_overall > target:
