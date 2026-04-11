@@ -1,7 +1,6 @@
 from functools import partialmethod
 import math
-from turtle import forward
-from typing import Callable 
+from typing import Callable
 from aperol.endomorphism import Endomorphism
 import torch
 from ..module import Module
