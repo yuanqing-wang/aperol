@@ -34,12 +34,14 @@ run_once() {
       return 1
     fi
 
-    # Detect the currently-running aperol experiment from squeue
+    # Detect the currently-running aperol experiment via submitter running
     RUNNING_EXP=""
-    running_raw=$(ssh -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes "${HOST}" \
-      "squeue -u yqw --noheader -o '%j' 2>/dev/null | grep '^aperol_exp' | head -1" 2>/dev/null || true)
-    if [[ "${running_raw}" =~ ^aperol_exp([0-9]+)$ ]]; then
-      RUNNING_EXP="${BASH_REMATCH[1]}"
+    SUBMITTER="${HOME}/Documents/GitHub/submitter/submitter"
+    if [[ -x "${SUBMITTER}" ]]; then
+      running_raw=$("${SUBMITTER}" running trillium 2>/dev/null | grep 'aperol_exp' | awk '{print $2}' | head -1 || true)
+      if [[ "${running_raw}" =~ ^aperol_exp([0-9]+)$ ]]; then
+        RUNNING_EXP="${BASH_REMATCH[1]}"
+      fi
     fi
 
     # Use the repo's copy of summarize.py (already on cluster via git pull).
