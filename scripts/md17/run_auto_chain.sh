@@ -29,6 +29,7 @@ USE_FINAL_CKPT=""
 
 USE_BASE=""
 WEIGHT_NOISE=""
+N_EPOCHS=""
 POLL_TIMEOUT=9000  # 2.5h — safety net for 200-epoch jobs (~50min expected)
 
 while [[ $# -gt 0 ]]; do
@@ -40,12 +41,13 @@ while [[ $# -gt 0 ]]; do
     --use-final-ckpt) USE_FINAL_CKPT=1;     shift   ;;
     --use-base)       USE_BASE=1;           shift   ;;
     --weight-noise)   WEIGHT_NOISE="$2";    shift 2 ;;
+    --n-epochs)       N_EPOCHS="$2";        shift 2 ;;
     --poll-timeout)   POLL_TIMEOUT="$2";    shift 2 ;;
     *)                START_EXP="$1";       shift   ;;
   esac
 done
 
-[[ -z "${START_EXP}" ]] && { echo "Usage: $0 <start_exp> [--target <val>] [--max <n>] [--use-run <n>] [--next <n>] [--use-final-ckpt] [--use-base] [--weight-noise N]" >&2; exit 1; }
+[[ -z "${START_EXP}" ]] && { echo "Usage: $0 <start_exp> [--target <val>] [--max <n>] [--use-run <n>] [--next <n>] [--use-final-ckpt] [--use-base] [--weight-noise N] [--n-epochs N]" >&2; exit 1; }
 
 # Pre-flight: verify the start experiment has a checkpoint (must be finished)
 START_CKPT="${REMOTE_BASE}/${START_EXP}/best_checkpoint.pt"
@@ -78,6 +80,7 @@ for ((i = 1; i <= MAX_NEW; i++)); do
   [[ -n "${USE_FINAL_CKPT}" ]] && RESET_ARGS+=(--use-final-ckpt)
   [[ -n "${USE_BASE}" ]]       && RESET_ARGS+=(--use-base)
   [[ -n "${WEIGHT_NOISE}" ]]   && RESET_ARGS+=(--weight-noise "${WEIGHT_NOISE}")
+  [[ -n "${N_EPOCHS}" ]]       && RESET_ARGS+=(--n-epochs "${N_EPOCHS}")
   # Use ${RESET_ARGS[@]:+"${RESET_ARGS[@]}"} to safely expand empty arrays in bash 3.x
   bash "${NEW_RESET}" "${PREV}" "${NEW}" ${RESET_ARGS[@]:+"${RESET_ARGS[@]}"}
 
