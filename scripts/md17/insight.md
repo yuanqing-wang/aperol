@@ -17,9 +17,19 @@
 - **What worked:** Fast early convergence (760→14 in 90 epochs). Low overfitting (val/train=1.46 vs 4.7× before with n_tr=5000).
 - **Takeaway:** n_tr=1000 gives much less overfitting than n_tr=5000. val_force plateau at ~14 — needs optimizer reset to push lower.
 
-## Exp 2 — Optimizer reset from Exp 1 + fresh LR=1e-5 (RUNNING, job 426710)
-- **Config:** Load exp1/checkpoint.pt, fresh Adam LR=1e-5, StepLR(step_size=20, gamma=0.5).
-- **Expected:** val_force ≈ 8-12 after 80 epochs.
+## Exp 2 — Optimizer reset from Exp 1 + fresh LR=1e-5
+- **Result:** val_force=10.91 (epoch 79), train_force=7.21. Ratio=1.51.
+- **Config:** Load exp1/checkpoint.pt, fresh Adam LR=1e-5, StepLR(step_size=20, gamma=0.5), 80 epochs.
+- **Trend:** val_force 16.2(ep0)→12.2(ep20)→11.04(ep40)→10.81(ep60)→10.91(ep79). Plateau at ~10.8.
+- **Takeaway:** Optimizer reset from exp1 gives 24% improvement (14.2→10.9). Ratio stayed ~1.5 (not growing). Good generalization with n_tr=1000.
+
+## Exp 4 — Second optimizer reset from Exp 2 (RUNNING, job 426790)
+- **Config:** Load exp2/checkpoint.pt, fresh Adam LR=1e-5, StepLR(step_size=20, gamma=0.5).
+- **Expected:** val_force ≈ 7-9 after 80 epochs.
+
+## Exp 3 — Bold: sender+receiver broadcasts from scratch (ready to run)
+- **Config:** Same as exp1 but Layer adds NodeToEdgeSenderBroadcast. Trains from scratch.
+- **Status:** Prepared, job.sh ready. Run after exp 4 to compare architecture.
 
 ## Exp 3 — Bold: sender+receiver broadcasts from scratch
 - **Config:** Same as exp1 but Layer adds NodeToEdgeSenderBroadcast alongside NodeToEdgeBroadcast.
