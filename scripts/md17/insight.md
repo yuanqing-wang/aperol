@@ -29,15 +29,19 @@
 - **Trend:** 11.9(ep0)→9.53(ep57, best)→9.72(ep79). Plateau ~9.5-9.8.
 - **Takeaway:** Another ~24% reduction (10.9→9.72). Ratio growing slightly (1.47→1.70) but acceptable.
 
-## Exp 5 — Third optimizer reset from Exp 4 (RUNNING, job 426793)
-- **Config:** Load exp4/checkpoint.pt, fresh Adam LR=1e-5, StepLR(step_size=20, gamma=0.5), best_checkpoint saving.
-- **Trend:** val_force 11.9(ep0)→8.88(ep23)→**8.61(ep42, after LR decay!)**. Ratio=1.76.
-- **Expected final:** val_force ≈ 7.0-7.5 after 80 epochs (20% per reset pattern).
+## Exp 5 — Third optimizer reset from Exp 4
+- **Result:** val_force=8.57 (epoch 60, best), final=8.69 (epoch 79). Train=4.65. Ratio=1.84.
+- **Config:** Load exp4/checkpoint.pt, fresh Adam LR=1e-5, StepLR(step_size=20, gamma=0.5), 80 epochs.
+- **Trend:** 11.9(ep0)→8.57(ep60, best). Each LR decay gave improvement.
+- **Takeaway:** Another ~10% reduction (9.53→8.57 best). Ratio growing (1.61→1.84). Best improvement came at epoch 60 after LR decay.
 
-## Exps 6–8 — Planned optimizer resets (jobs.sh ready on cluster, using best_checkpoint.pt)
-- **Exp 6:** init_from exp5/best_checkpoint.pt → expected val_force ~5.3-5.6 (~24% reduction)
-- **Exp 7:** init_from exp6/best_checkpoint.pt → expected val_force ~4.0-4.5
-- **Exp 8:** init_from exp7/best_checkpoint.pt → expected val_force ~3.0-3.6
+## Exp 6 — Fourth optimizer reset from Exp 5/best_checkpoint (RUNNING, job 426795)
+- **Config:** Load exp5/best_checkpoint.pt (val_force=8.57), fresh Adam LR=1e-5, StepLR(step_size=20, gamma=0.5).
+- **Expected:** val_force ≈ 6.5-7.0 (using best_checkpoint gives better starting point).
+
+## Exps 7–8 — Planned optimizer resets (jobs.sh ready on cluster)
+- **Exp 7:** init_from exp6/best_checkpoint.pt → expected val_force ~5.0-5.5
+- **Exp 8:** init_from exp7/best_checkpoint.pt → expected val_force ~3.8-4.2
 
 ## Exp 3 — Bold: sender+receiver broadcasts from scratch (queued)
 - **Config:** Same as exp1 but Layer adds `NodeToEdgeSenderBroadcast` alongside `NodeToEdgeBroadcast` in each layer. Fresh start (can't share checkpoints with exp1 chain).
