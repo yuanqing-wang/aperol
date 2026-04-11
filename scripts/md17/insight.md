@@ -99,8 +99,16 @@ Chain A requires ~9% reduction per reset. Target <1.0 needs ~20 more resets. Ver
 
 ## Exp 18 — B+ second reset from exp15 (RUNNING, job 427027)
 - **Config:** Load exp15/best_checkpoint.pt (13.19), fresh LR=1e-5, 200 epochs.
-- **Expected:** ~10.4 (~21% improvement from 13.19)
-- **After exp18:** Run B+ auto-chain: `bash scripts/md17/run_auto_chain.sh 18 --next 19 --target 1.0 --max 20`
+- **Trend:** Best=12.63 at epoch 16, ratio=1.80. Already below exp15's 13.19!
+- **Expected final:** ~10.4 (~21% improvement from 13.19)
+- **After exp18:** Run hands-off B+ chain to <1.0:
+  ```bash
+  # Option A: wait for exp18 via poll-watch, then start auto-chain
+  submitter poll-watch trillium 427027 && \
+    bash scripts/md17/run_auto_chain.sh 18 --next 19 --target 1.0 --max 20
+  # Option B: run directly after exp18 finishes manually
+  bash scripts/md17/run_auto_chain.sh 18 --next 19 --target 1.0 --max 20
+  ```
 
 ## Exp 17 — Chain A (STAGED, next chain A reset after exp16)
 - **Status:** ready to submit; low priority given B+ progress
