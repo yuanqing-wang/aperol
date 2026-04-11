@@ -51,7 +51,7 @@ ssh ... 'cat > /scratch/yqw/aperol/scripts/md17/experiments/{n}/job.sh << '"'"'E
 #SBATCH -J aperol_exp{n}
 #SBATCH --partition=debug
 #SBATCH --gpus-per-node=1
-#SBATCH --time=59:00
+#SBATCH --time=2:00:00
 #SBATCH -n 1
 #SBATCH -o /scratch/yqw/aperol/scripts/md17/experiments/{n}/job_%j.log
 #SBATCH -e /scratch/yqw/aperol/scripts/md17/experiments/{n}/job_%j.err
@@ -67,7 +67,13 @@ echo APEROL_JOB_DONE
 EOF'
 ```
 
-For optimizer-reset experiments, add `--init_from /scratch/yqw/aperol/scripts/md17/experiments/{prev}/checkpoint.pt` and any extra args (e.g. `--learning_rate 1e-5`).
+For optimizer-reset experiments, add these args (use `best_checkpoint.pt` for the best-seen model):
+```
+  --n_epoch 200 \
+  --learning_rate 1e-5 \
+  --scheduler_step 20 \
+  --init_from /scratch/yqw/aperol/scripts/md17/experiments/{prev}/best_checkpoint.pt \
+```
 
 **Submit the job** using submitter (preferred — handles cluster flags correctly):
 ```bash
