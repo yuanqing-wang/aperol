@@ -1,5 +1,7 @@
 """Aperol — equivariant neural networks for molecular force fields."""
 
+__version__ = "0.1.0"
+
 from .state import State
 from .module import Module
 from .utils import ProjectionIn, ProjectionOut
