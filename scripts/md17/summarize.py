@@ -128,15 +128,21 @@ def main(exp_dir: str, running: str = "") -> None:
                 prev_val = v  # only update prev from chain A
         avg_improvement = sum(improvements) / len(improvements) if improvements else 0.091
 
+        # Also compute recent improvement rate (last 3 chain A resets) for a realistic estimate
+        recent = improvements[-3:] if len(improvements) >= 3 else improvements
+        recent_improvement = sum(recent) / len(recent) if recent else avg_improvement
+
         if best_overall > target:
-            n = math.ceil(math.log(target / best_overall) / math.log(1 - avg_improvement))
-            pct = avg_improvement * 100
+            n_overall = math.ceil(math.log(target / best_overall) / math.log(1 - avg_improvement))
+            n_recent = math.ceil(math.log(target / best_overall) / math.log(1 - recent_improvement))
+            pct_avg = avg_improvement * 100
+            pct_recent = recent_improvement * 100
             mins_per_reset = 67
-            total_hours = n * mins_per_reset // 60
-            total_mins = n * mins_per_reset % 60
-            print(f"\nBest: {best_overall:.4f}  Target: <{target}  "
-                  f"Est. ~{n} resets at {pct:.1f}%/reset  "
-                  f"(~{total_hours}h {total_mins}min at 200ep/{mins_per_reset}min each)")
+            print(f"\nBest: {best_overall:.4f}  Target: <{target}")
+            print(f"  Overall avg: ~{pct_avg:.1f}%/reset → ~{n_overall} resets "
+                  f"(~{n_overall * mins_per_reset // 60}h)")
+            print(f"  Recent (last 3): ~{pct_recent:.1f}%/reset → ~{n_recent} resets "
+                  f"(~{n_recent * mins_per_reset // 60}h)  ← more realistic")
 
 
 if __name__ == "__main__":
