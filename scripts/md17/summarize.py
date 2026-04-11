@@ -23,8 +23,32 @@ import os
 import sys
 
 
+def _detect_actual_init(exp_dir: str, exp_name: str) -> str:
+    """Look in job logs for 'Loaded model from' to detect actual checkpoint used."""
+    import re
+    import glob
+    log_pattern = os.path.join(exp_dir, exp_name, "job_*.log")
+    logs = sorted(glob.glob(log_pattern))
+    for log in reversed(logs):  # most recent log first
+        try:
+            txt = open(log, errors="ignore").read(5000)
+            m = re.search(r"Loaded model from (.+), fresh optimizer", txt)
+            if m:
+                return m.group(1)  # full path of init_from
+            m = re.search(r"Resumed from (.+) at epoch", txt)
+            if m:
+                return m.group(1) + " (resume)"
+        except Exception:
+            pass
+    return ""
+
+
 def _detect_chain(exp_dir: str, exp_name: str) -> str:
-    """Return a short chain label by scanning the run.py imports and class bodies."""
+    """Return a short chain label by scanning the run.py imports and class bodies.
+
+    For cases where actual runtime behavior differs from code (e.g. checkpoint mixup),
+    the code-based label may be misleading — check job logs separately.
+    """
     import re
     run_py = os.path.join(exp_dir, exp_name, "run.py")
     if not os.path.exists(run_py):
@@ -37,7 +61,7 @@ def _detect_chain(exp_dir: str, exp_name: str) -> str:
     if has_sender and has_edge_pos:
         return "B+"  # bold: sender+receiver + edge→pos/vel
     if has_sender:
-        return "B"   # chain B: sender+receiver
+        return "B"   # chain B: sender+receiver (note: verify actual init via job log)
     return "A"       # chain A: receiver-only (base)
 
 
