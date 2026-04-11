@@ -91,15 +91,20 @@ Training resumes from the checkpoint if it exists and appends to `metrics.jsonl`
 ~/Documents/GitHub/submitter/submitter watch trillium {job_id}
 ```
 
+**Automate a sequence of experiments** (after preparing each job.sh on the cluster):
+```bash
+bash scripts/md17/run_chain.sh 6 7 8
+```
+This uses `submitter poll` + `submit-remote` to run experiments sequentially without needing pending slots.
+
+**Show a summary table** of all experiment results:
+```bash
+bash scripts/md17/summarize.sh
+```
+
 **Read metrics** after each run via SSH:
 ```bash
 ssh ... 'cat /scratch/yqw/aperol/scripts/md17/experiments/{n}/metrics.jsonl'
-```
-
-**Check job status**:
-```bash
-ssh ... 'squeue -j {job_id} --noheader -o "%T %M" 2>/dev/null || \
-  sacct -j {job_id} --noheader -o State --parsable2 2>/dev/null | head -1'
 ```
 
 ---
