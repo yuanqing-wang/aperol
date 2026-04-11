@@ -151,12 +151,13 @@ Read `insight.md` at the start of each session (during Orientation) so prior fin
 ## Workflow (iterate indefinitely)
 
 After each run completes:
-1. **Read metrics** via SSH. Assess the trend — is it still improving?
+1. **Read metrics** via SSH (or `bash scripts/md17/summarize.sh`). Assess the trend.
 2. **Append to insight.md** with the result and takeaway.
-3. **Continue** the same experiment (submit another job) only if it is clearly still improving and hasn't plateaued.
-4. **Branch** to a new experiment whenever you want to test a different design. Run experiments sequentially — never submit a new job until the current one has finished. Bias strongly toward exploration; vary architectures boldly across experiments.
-5. Abandon poorly-performing experiments quickly (a few epochs is enough to judge).
-6. Immediately loop back to step 1. **Never stop.**
+3. **If plateaued**: set up next optimizer reset with `bash scripts/md17/new_reset_exp.sh {n}` then submit.
+4. **Branch** to a new experiment whenever you want to test a bold design. Run experiments sequentially.
+5. **Automate a chain**: `bash scripts/md17/run_chain.sh {n} {n+1} ...` submits sequentially using `submitter poll`.
+6. Abandon poorly-performing experiments quickly (a few epochs is enough to judge).
+7. Immediately loop back to step 1. **Never stop.**
 
 ---
 
