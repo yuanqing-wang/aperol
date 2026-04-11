@@ -58,6 +58,18 @@ def test_endomorphism_batched(name, cls):
     assert y.shape == x.shape, f"{name}: batched shape mismatch"
 
 
+def test_lazy_layer_norm_normalizes():
+    """LazyLayerNorm should normalize input to ~zero mean, ~unit std per sample."""
+    torch.manual_seed(0)
+    norm = LazyLayerNorm()
+    # Input with large mean and std
+    x = torch.randn(4, 16) * 10 + 5
+    y = norm(x)
+    # Layer norm normalizes over last dim — check across all elements
+    assert abs(y.mean().item()) < 0.5, f"Mean should be ~0, got {y.mean().item():.3f}"
+    assert abs(y.std().item() - 1.0) < 0.3, f"Std should be ~1, got {y.std().item():.3f}"
+
+
 def test_lazy_residual_linear_identity_init():
     """LazyResidualLinear initialized with W=0 should output x (identity)."""
     layer = LazyResidualLinear()
