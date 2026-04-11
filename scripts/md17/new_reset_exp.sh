@@ -125,13 +125,20 @@ fi
   sed -i '1s|^\"\"\".*$|\"\"\"Exp ${NEW} — Optimizer reset from exp${PREV} best_checkpoint.|' '${REMOTE_NEW}/run.py'
 "
 
+# Compute time limit: ~20s/epoch with 50% buffer, min 30min, max 2h
+# Formula: ceil(N_EPOCH * 20 * 1.5 / 60) minutes, clamped to [30, 120]
+TIME_MINS=$(( (N_EPOCH * 20 * 3 / 2 + 59) / 60 ))
+[[ ${TIME_MINS} -lt 30  ]] && TIME_MINS=30
+[[ ${TIME_MINS} -gt 120 ]] && TIME_MINS=120
+TIME_LIMIT="${TIME_MINS}:00"
+
 # Write job.sh (must use submitter run-cmd with stdin for cat heredoc)
 "${SUBMITTER}" run-cmd "${CLUSTER}" "cat > '${REMOTE_NEW}/job.sh'" << EOF
 #!/bin/bash
 #SBATCH -J aperol_exp${NEW}
 #SBATCH --partition=debug
 #SBATCH --gpus-per-node=1
-#SBATCH --time=2:00:00
+#SBATCH --time=${TIME_LIMIT}
 #SBATCH -n 1
 #SBATCH -o ${REMOTE_NEW}/job_%j.log
 #SBATCH -e ${REMOTE_NEW}/job_%j.err
