@@ -158,8 +158,14 @@ def check_layer(
         state = get_random_state()
     state_r = rotate_state(state, r)
 
-    out = layer(state)
-    out_r = layer(state_r)
+    was_training = layer.training
+    layer.eval()
+    try:
+        out = layer(state)
+        out_r = layer(state_r)
+    finally:
+        if was_training:
+            layer.train()
 
     # Scalars/features should be rotation-invariant.
     _assert_allclose(out.node, out_r.node, name=f"{name}.node", atol=atol, rtol=rtol)
