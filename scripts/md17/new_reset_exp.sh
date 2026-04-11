@@ -34,6 +34,15 @@ fi
 
 REMOTE_NEW="${REMOTE_BASE}/${NEW}"
 
+# Guard: warn if destination already has a checkpoint (would overwrite a running/done exp)
+if ssh -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes "${HOST}" \
+    "test -f '${REMOTE_NEW}/checkpoint.pt'" 2>/dev/null; then
+  echo "WARNING: ${REMOTE_NEW}/checkpoint.pt already exists." >&2
+  echo "  This experiment may already be running or completed." >&2
+  read -r -p "  Overwrite? [y/N] " confirm
+  [[ "${confirm}" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 1; }
+fi
+
 echo "Creating exp${NEW} (optimizer reset from exp${PREV})..."
 echo "  init_from: ${INIT_FROM}"
 
