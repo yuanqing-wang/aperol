@@ -23,13 +23,31 @@ import os
 import sys
 
 
+def _detect_chain(exp_dir: str, exp_name: str) -> str:
+    """Return a short chain label by scanning the run.py imports and class bodies."""
+    import re
+    run_py = os.path.join(exp_dir, exp_name, "run.py")
+    if not os.path.exists(run_py):
+        return ""
+    txt = open(run_py, errors="ignore").read()
+    # Only check actual code lines (not docstrings) by looking for import or attribute assignment
+    has_sender = bool(re.search(r"^\s*(from|import).*NodeToEdgeSenderBroadcast", txt, re.MULTILINE) or
+                      re.search(r"NodeToEdgeSenderBroadcast\s*\(", txt))
+    has_edge_pos = bool(re.search(r"EdgeToPositionAggregation\s*\(", txt))
+    if has_sender and has_edge_pos:
+        return "B+"  # bold: sender+receiver + edge→pos/vel
+    if has_sender:
+        return "B"   # chain B: sender+receiver
+    return "A"       # chain A: receiver-only (base)
+
+
 def main(exp_dir: str, running: str = "") -> None:
     entries = sorted(
         [d for d in os.listdir(exp_dir) if os.path.isdir(os.path.join(exp_dir, d))],
         key=lambda x: int(x),
     )
 
-    hdr = f"{'Exp':>5}  {'BestVal':>8}  {'@ep':>4}  {'TrainF':>7}  {'Ratio':>6}  {'FinalVal':>9}  {'Ep':>3}"
+    hdr = f"{'Exp':>5}  {'Ch':>3}  {'BestVal':>8}  {'@ep':>4}  {'TrainF':>7}  {'Ratio':>6}  {'FinalVal':>9}  {'Ep':>3}"
     print(hdr)
     print("-" * len(hdr))
 
@@ -37,8 +55,9 @@ def main(exp_dir: str, running: str = "") -> None:
         m = os.path.join(exp_dir, e, "metrics.jsonl")
         if not os.path.exists(m):
             # Show experiments with no metrics yet (e.g. staged)
+            chain = _detect_chain(exp_dir, e)
             marker = "*" if e == running else " "
-            print(f"{e:>4}{marker}  {'—':>8}  {'—':>4}  {'—':>7}  {'—':>6}  {'—':>9}  {'—':>3}  (staged)")
+            print(f"{e:>4}{marker}  {chain:>3}  {'—':>8}  {'—':>4}  {'—':>7}  {'—':>6}  {'—':>9}  {'—':>3}  (staged)")
             continue
         lines = [json.loads(line) for line in open(m)]
         if not lines:
@@ -47,10 +66,11 @@ def main(exp_dir: str, running: str = "") -> None:
         last = lines[-1]
         tf = best["train_force_error"]
         ratio = best["val_force_error"] / tf if tf > 0 else float("nan")
+        chain = _detect_chain(exp_dir, e)
         marker = "*" if e == running else " "
         running_note = " ← running" if e == running else ""
         print(
-            f"{e:>4}{marker}  {best['val_force_error']:>8.4f}  {best['epoch']:>4d}  "
+            f"{e:>4}{marker}  {chain:>3}  {best['val_force_error']:>8.4f}  {best['epoch']:>4d}  "
             f"{tf:>7.4f}  {ratio:>6.2f}  "
             f"{last['val_force_error']:>9.4f}  {len(lines):>3d}{running_note}"
         )
