@@ -135,6 +135,11 @@ def main():
     prefer_best = not args.prefer_final
 
     # Warn if experiments span different chains (A/B/B+)
+    # Add this script's directory to sys.path so summarize.py is importable
+    # regardless of the working directory.
+    _script_dir = str(Path(__file__).parent)
+    if _script_dir not in sys.path:
+        sys.path.insert(0, _script_dir)
     from summarize import _detect_chain
     exp_dir = str(Path(REMOTE_BASE) / "scripts/md17/experiments")
     chains = {n: _detect_chain(exp_dir, str(n)) for n in args.exp_nums}
