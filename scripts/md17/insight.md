@@ -92,18 +92,18 @@ Chain A requires ~9% reduction per reset. Target <1.0 needs ~20 more resets. Ver
 - **Result:** val_force=5.49 (epoch 33, best), final=5.56 (epoch 199). TrainF=1.63. Ratio=3.37.
 - **Takeaway:** Only 2.4% improvement from exp14 (5.62→5.49). Chain A severely diminished.
 
-## Exp 15 — B+ first reset from exp13 (RUNNING, job 426958)
-- **Config:** Load exp13/best_checkpoint.pt (16.69), fresh LR=1e-5, 200 epochs.
-- **Trend:** val_force 17.3(ep0)→15.6(ep12)→14.5(ep20)→13.22(ep105, best). Ratio=1.91.
-- **BREAKTHROUGH:** 20.8% improvement per reset (vs chain A's 2.1%)!
-  - B+ projected: 13.2→10.5→8.3→6.6→5.2→4.1→3.3→2.6→...→0.81 ✓
-  - ~12 resets from current best to reach <1.0 (~13h)!
-  - vs Chain A: 80+ resets (~89h) - B+ is **7× faster**!
-- **Takeaway:** Lower overfitting ratio (1.91 vs chain A 3.37) = bigger improvement per reset.
-- **After exp15:** Run B+ auto-chain: `bash scripts/md17/run_auto_chain.sh 15 --next 18 --target 1.0 --max 20`
+## Exp 15 — B+ first reset from exp13 (DONE)
+- **Result:** val_force=13.19 (epoch 174, best), final=13.20 (epoch 199). TrainF=6.82. Ratio=1.93.
+- **BREAKTHROUGH:** 20.9% improvement (16.69→13.19) vs chain A's 2.1%! Lower ratio = better resets.
+- **Confirms:** B+ chain is ~7× faster path to <1.0 than chain A.
 
-## Exp 17 — Chain A or B+ (STAGED, exp17 dir prepared by user)
-- **Status:** ready to submit after exp15 finishes
+## Exp 18 — B+ second reset from exp15 (RUNNING, job 427027)
+- **Config:** Load exp15/best_checkpoint.pt (13.19), fresh LR=1e-5, 200 epochs.
+- **Expected:** ~10.4 (~21% improvement from 13.19)
+- **After exp18:** Run B+ auto-chain: `bash scripts/md17/run_auto_chain.sh 18 --next 19 --target 1.0 --max 20`
+
+## Exp 17 — Chain A (STAGED, next chain A reset after exp16)
+- **Status:** ready to submit; low priority given B+ progress
 
 ## SWA Ensemble (diagnostic)
 - **Tried:** Averaging weights from exps 8, 10, 11, 12 → val_force=5.92
