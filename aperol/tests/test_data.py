@@ -103,9 +103,11 @@ def test_projection_out_is_differentiable():
     state = proj_in(s)
     energy = proj_out(state)
     energy.sum().backward()
-    # Gradients may be zero (no position-dependent ops in ProjectionIn),
-    # but no error should be raised.
-    assert pos.grad is not None or True  # allow None (position not used)
+    # In the base model (ProjectionOut reads only node features, not positions),
+    # position is not connected to energy — gradient is None. The important thing
+    # is that backward() doesn't raise, not whether grad is non-None.
+    # (A full model with PairBaseline would have pos.grad != None.)
+    pass  # backward completed without raising
 
 
 # ---------------------------------------------------------------------------
