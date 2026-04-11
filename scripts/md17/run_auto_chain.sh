@@ -27,6 +27,8 @@ USE_RUN=""
 NEXT_EXP=""
 USE_FINAL_CKPT=""
 
+USE_BASE=""
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --target)         TARGET="$2";        shift 2 ;;
@@ -34,11 +36,12 @@ while [[ $# -gt 0 ]]; do
     --use-run)        USE_RUN="$2";       shift 2 ;;
     --next)           NEXT_EXP="$2";      shift 2 ;;
     --use-final-ckpt) USE_FINAL_CKPT=1;   shift   ;;
+    --use-base)       USE_BASE=1;         shift   ;;
     *)                START_EXP="$1";     shift   ;;
   esac
 done
 
-[[ -z "${START_EXP}" ]] && { echo "Usage: $0 <start_exp> [--target <val>] [--max <n>] [--use-run <n>] [--next <n>] [--use-final-ckpt]" >&2; exit 1; }
+[[ -z "${START_EXP}" ]] && { echo "Usage: $0 <start_exp> [--target <val>] [--max <n>] [--use-run <n>] [--next <n>] [--use-final-ckpt] [--use-base]" >&2; exit 1; }
 
 # Pre-flight: verify the start experiment has a checkpoint (must be finished)
 START_CKPT="${REMOTE_BASE}/${START_EXP}/best_checkpoint.pt"
@@ -69,6 +72,7 @@ for ((i = 1; i <= MAX_NEW; i++)); do
   RESET_ARGS=()
   [[ -n "${USE_RUN}" ]]        && RESET_ARGS+=(--use-run "${USE_RUN}")
   [[ -n "${USE_FINAL_CKPT}" ]] && RESET_ARGS+=(--use-final-ckpt)
+  [[ -n "${USE_BASE}" ]]       && RESET_ARGS+=(--use-base)
   # Use ${RESET_ARGS[@]:+"${RESET_ARGS[@]}"} to safely expand empty arrays in bash 3.x
   bash "${NEW_RESET}" "${PREV}" "${NEW}" ${RESET_ARGS[@]:+"${RESET_ARGS[@]}"}
 
