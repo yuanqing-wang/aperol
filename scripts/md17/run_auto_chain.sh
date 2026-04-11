@@ -92,9 +92,16 @@ for ((i = 1; i <= MAX_NEW; i++)); do
     exit 1
   fi
 
-  echo "Job ${job_id} submitted for exp${NEW}. Polling every ${POLL_INTERVAL}s ..."
+  echo "Job ${job_id} submitted for exp${NEW}. Polling every ${POLL_INTERVAL}s (timeout: 9000s) ..."
 
-  if ! "${SUBMITTER}" poll "${CLUSTER}" "${job_id}" -i "${POLL_INTERVAL}"; then
+  poll_exit=0
+  "${SUBMITTER}" poll "${CLUSTER}" "${job_id}" -i "${POLL_INTERVAL}" -t 9000 || poll_exit=$?
+
+  if [[ $poll_exit -eq 2 ]]; then
+    echo "WARNING: exp${NEW} (job ${job_id}) timed out after 9000s — still running?" >&2
+    echo "Check status with: submitter running ${CLUSTER}" >&2
+    exit 2
+  elif [[ $poll_exit -ne 0 ]]; then
     echo "ERROR: exp${NEW} (job ${job_id}) did not complete successfully." >&2
     exit 1
   fi
