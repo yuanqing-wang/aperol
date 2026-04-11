@@ -104,6 +104,14 @@ def main():
 
     print(f"Evaluating: {ckpt_path}", flush=True)
 
+    # Peek at epoch in checkpoint (without loading the full model yet)
+    try:
+        ckpt_meta = torch.load(ckpt_path, map_location="cpu", weights_only=True)
+        epoch = ckpt_meta.get("epoch", "unknown")
+        print(f"  Checkpoint epoch: {epoch}", flush=True)
+    except Exception:
+        pass  # weights_only=True may fail for old pickled checkpoints
+
     # Load class definitions from the experiment's run.py
     exp_dir = ckpt_path.parent
     _import_model_class(exp_dir)
