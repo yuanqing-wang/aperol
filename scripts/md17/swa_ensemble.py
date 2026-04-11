@@ -31,7 +31,8 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-REMOTE_BASE = "/scratch/yqw/aperol"
+# Default base directory; override with --base-dir if running from a different location.
+REMOTE_BASE = os.environ.get("APEROL_BASE", "/scratch/yqw/aperol")
 sys.path.insert(0, REMOTE_BASE)
 
 from aperol.data.md17 import load_md17, collate_md17
@@ -127,11 +128,18 @@ def main():
     parser.add_argument("--exp", type=int, default=None,
                         help="Save as experiments/{exp}/checkpoint.pt (also creates the directory)")
     parser.add_argument("--data", type=str, default="malonaldehyde")
+    parser.add_argument("--base-dir", type=str, default=None,
+                        help=f"Override experiment base directory (default: {REMOTE_BASE})")
     parser.add_argument("--prefer-final", action="store_true",
                         help="Use checkpoint.pt instead of best_checkpoint.pt")
     args = parser.parse_args()
 
-    print(f"SWA ensemble: averaging exps {args.exp_nums}", flush=True)
+    global REMOTE_BASE
+    if args.base_dir:
+        REMOTE_BASE = args.base_dir
+        sys.path.insert(0, REMOTE_BASE)
+
+    print(f"SWA ensemble: averaging exps {args.exp_nums} (base: {REMOTE_BASE})", flush=True)
     prefer_best = not args.prefer_final
 
     # Warn if experiments span different chains (A/B/B+)
