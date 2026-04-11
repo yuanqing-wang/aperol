@@ -11,10 +11,20 @@
 
 ---
 
-## Exp 1 — Best-known architecture from scratch (n_tr=n_vl=1000)
-- **Status:** Running (Trillium). Fast convergence with n_tr=1000: ~20s/epoch.
-- **Config:** DualPairBaseline + AngleToEdge + VelocityNormToNode + residuals, node=128, depth=5, LR=3e-4, StepLR(10, 0.5).
-- **Trend (first 5 epochs):** val_force: 760→442→247→150→108 (rapid early drop)
+## Exp 1 — DualPairBaseline from scratch (n_tr=n_vl=1000)
+- **Result:** val_force=14.2, train_force=9.71 (epoch 89). Ratio=1.46 (low overfitting!).
+- **Config:** DualPairBaseline + AngleToEdge + VelocityNormToNode + residuals, node=128, depth=5, LR=3e-4, StepLR(10, 0.5), 90 epochs.
+- **What worked:** Fast early convergence (760→14 in 90 epochs). Low overfitting (val/train=1.46 vs 4.7× before with n_tr=5000).
+- **Takeaway:** n_tr=1000 gives much less overfitting than n_tr=5000. val_force plateau at ~14 — needs optimizer reset to push lower.
+
+## Exp 2 — Optimizer reset from Exp 1 + fresh LR=1e-5 (RUNNING, job 426710)
+- **Config:** Load exp1/checkpoint.pt, fresh Adam LR=1e-5, StepLR(step_size=20, gamma=0.5).
+- **Expected:** val_force ≈ 8-12 after 80 epochs.
+
+## Exp 3 — Bold: sender+receiver broadcasts from scratch
+- **Config:** Same as exp1 but Layer adds NodeToEdgeSenderBroadcast alongside NodeToEdgeBroadcast.
+- **Hypothesis:** Full sender+receiver per-layer messages enable richer directed message passing.
+- **Status:** Prepared, job.sh ready. Run after exp 2.
 
 ---
 
