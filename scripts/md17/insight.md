@@ -5,7 +5,7 @@
 - **Model**: DualPairBaseline + AngleToEdge + VelocityNormToNode + residuals
 - **Size**: node=edge=128 features, pos=vel=16, depth=5
 - **Pair baselines**: PairBaseline (learned position space) + CartesianPairBaseline (raw Cartesian)
-- **Data**: n_tr=1000, n_vl=1000 (val at indices [5000,6000))
+- **Data**: n_tr=5000, n_vl=1000 (val at indices [5000,6000))
 - **Loss**: 0.01·energy_mse + 0.99·force_mse
 - **CRITICAL**: Class definitions must exactly match exp1/run.py for pickle checkpoint loading
 
