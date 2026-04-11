@@ -76,9 +76,12 @@ def average_checkpoints(ckpts: list) -> dict:
 
 def evaluate(model, data: str = "malonaldehyde", n_tr: int = 1000, n_vl: int = 1000,
              batch_size: int = 8) -> tuple[float, float]:
-    """Evaluate on the full validation set. Returns (val_force_mse, val_energy_mse)."""
-    assert torch.cuda.is_available(), "GPU required for evaluation"
-    device = torch.device("cuda")
+    """Evaluate on the full validation set. Returns (val_force_mse, val_energy_mse).
+
+    Works on both GPU (fast) and CPU (slower but fine for 1000-sample eval).
+    """
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"  Evaluating on {device} ...", flush=True)
     model = model.to(device)
     model.eval()
 
@@ -88,7 +91,7 @@ def evaluate(model, data: str = "malonaldehyde", n_tr: int = 1000, n_vl: int = 1
     val_force_sum = val_energy_sum = 0.0
     val_n = 0
     for batch in val_loader:
-        batch = batch.cuda()
+        batch = batch.to(device)
         batch.position.requires_grad_(True)
         energy = model(batch)
         force = -torch.autograd.grad(energy.sum(), batch.position, create_graph=False)[0]
