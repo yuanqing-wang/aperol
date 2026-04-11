@@ -23,16 +23,18 @@ POLL_INTERVAL=60
 TARGET=1.0
 MAX_NEW=30
 START_EXP=""
+USE_RUN=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --target) TARGET="$2"; shift 2 ;;
-    --max)    MAX_NEW="$2"; shift 2 ;;
-    *)        START_EXP="$1"; shift ;;
+    --target)  TARGET="$2";  shift 2 ;;
+    --max)     MAX_NEW="$2"; shift 2 ;;
+    --use-run) USE_RUN="$2"; shift 2 ;;
+    *)         START_EXP="$1"; shift ;;
   esac
 done
 
-[[ -z "${START_EXP}" ]] && { echo "Usage: $0 <start_exp> [--target <val>] [--max <n>]" >&2; exit 1; }
+[[ -z "${START_EXP}" ]] && { echo "Usage: $0 <start_exp> [--target <val>] [--max <n>] [--use-run <arch_exp>]" >&2; exit 1; }
 
 # Pre-flight: verify the start experiment has a checkpoint (must be finished)
 SOCK="${HOME}/.config/submitter/sockets/trillium.sock"
@@ -53,8 +55,12 @@ for ((i = 1; i <= MAX_NEW; i++)); do
   NEW=$(( PREV + 1 ))
   echo "=== Creating exp${NEW} (reset from exp${PREV}) ==="
 
-  # Create the new experiment
-  bash "${NEW_RESET}" "${PREV}" "${NEW}"
+  # Create the new experiment (optionally pin to a specific run.py architecture)
+  if [[ -n "${USE_RUN}" ]]; then
+    bash "${NEW_RESET}" "${PREV}" "${NEW}" --use-run "${USE_RUN}"
+  else
+    bash "${NEW_RESET}" "${PREV}" "${NEW}"
+  fi
 
   echo ""
   echo "=== Submitting exp${NEW} ==="
