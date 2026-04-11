@@ -42,9 +42,13 @@ run_once() {
       RUNNING_EXP="${BASH_REMATCH[1]}"
     fi
 
-    # Upload the Python script and run it remotely, passing the running experiment number
-    scp -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes \
-      "${PY}" "${HOST}:${REMOTE_PY}" 2>/dev/null
+    # Use the repo's copy of summarize.py (already on cluster via git pull).
+    # Fall back to scp upload if the remote file is missing.
+    if ! ssh -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes "${HOST}" \
+        "test -f '${REMOTE_PY}'" 2>/dev/null; then
+      scp -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes \
+        "${PY}" "${HOST}:${REMOTE_PY}" 2>/dev/null
+    fi
 
     ssh -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes "${HOST}" \
       "python3 '${REMOTE_PY}' '${REMOTE_EXP}' '${RUNNING_EXP}'"
