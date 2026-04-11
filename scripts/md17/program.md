@@ -15,7 +15,11 @@ All paths below are relative to `scripts/md17/` inside the repo. The repo root i
        -o BatchMode=yes yqw@trillium-gpu.scinet.utoronto.ca \
        'ls /scratch/yqw/aperol/scripts/md17/experiments/ | sort -n'
    ```
-3. For each experiment, read `experiments/{n}/metrics.jsonl` and `experiments/{n}/run.py` via SSH (see Cluster section).
+3. For a quick summary of all experiments (best val_force per run), use:
+   ```bash
+   bash scripts/md17/summarize.sh   # reads from cluster via SSH socket
+   ```
+   Or read `experiments/{n}/metrics.jsonl` directly via SSH for details.
 4. Check for any running jobs:
    ```bash
    ssh ... 'squeue -u yqw --noheader -o "%i %j %T %M"'
