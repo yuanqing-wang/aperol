@@ -37,6 +37,23 @@ sys.path.insert(0, REMOTE_BASE)
 from aperol.data.md17 import load_md17, collate_md17
 
 
+def _import_model_class(exp_n: int):
+    """Execute an experiment's run.py to bring its class definitions into scope.
+
+    This is required because checkpoints were saved with torch.save(model) where
+    model's class (Model, Layer, etc.) is defined in the experiment's run.py.
+    Pickle needs the same class definitions available at load time.
+    """
+    import importlib.util
+    run_py = Path(REMOTE_BASE) / "scripts/md17/experiments" / str(exp_n) / "run.py"
+    spec = importlib.util.spec_from_file_location(f"exp{exp_n}_run", run_py)
+    mod = importlib.util.module_from_spec(spec)
+    # Register as __main__ so pickle finds classes there
+    sys.modules["__main__"] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
 def load_checkpoint(exp_n: int, prefer_best: bool = True) -> dict:
     """Load checkpoint from experiments/{n}/."""
     exp_dir = Path(REMOTE_BASE) / "scripts/md17/experiments" / str(exp_n)
@@ -116,6 +133,12 @@ def main():
 
     print(f"SWA ensemble: averaging exps {args.exp_nums}", flush=True)
     prefer_best = not args.prefer_final
+
+    # Load Model/Layer class definitions from the first experiment's run.py.
+    # All experiments in the same chain share identical class structure.
+    ref_exp = args.exp_nums[0]
+    print(f"  Importing class definitions from exp{ref_exp}/run.py ...", flush=True)
+    _import_model_class(ref_exp)
 
     # Load all checkpoints
     ckpts = []
