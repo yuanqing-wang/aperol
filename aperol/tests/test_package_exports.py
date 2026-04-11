@@ -1,8 +1,14 @@
 """Test that all public symbols in aperol.__init__ are importable and usable."""
 
-import pytest
 import torch
 import aperol
+
+
+def test_version():
+    """Package should have a version string."""
+    assert hasattr(aperol, "__version__")
+    assert isinstance(aperol.__version__, str)
+    assert aperol.__version__  # non-empty
 
 
 def test_state_importable():
