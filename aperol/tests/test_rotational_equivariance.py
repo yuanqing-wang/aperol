@@ -3,10 +3,16 @@ import torch
 
 from aperol.test_utils import (
     get_random_rotation_matrix,
+    get_random_sample,
     get_random_state,
     get_simple_endomorphism,
     check_layer,
+    check_model,
 )
+from aperol.utils import ProjectionIn, ProjectionOut
+from aperol.module import Module
+from aperol.endomorphism import NodeEndomorphism, EdgeEndomorphism, LazySquareLinear, LazyLayerNorm
+from aperol.state import State
 from aperol.layers import (
     AngleToEdgeMultiChannel,
     EdgeToNodeAttention,
@@ -59,4 +65,47 @@ def test_layers_are_rotationally_equivariant(name, factory):
         r = get_random_rotation_matrix(device=state.position.device, dtype=state.position.dtype)
         layer = factory()
         check_layer(layer, name=name, state=state, r=r, atol=atol, rtol=rtol)
+
+
+def _make_simple_model():
+    """Minimal Model for testing: 1 layer, small features."""
+
+    def FeedForward():
+        return torch.nn.Sequential(LazySquareLinear(), LazyLayerNorm(), torch.nn.SiLU())
+
+    class SimpleLayer(Module):
+        def __init__(self):
+            super().__init__()
+            self.node_endo = NodeEndomorphism(FeedForward())
+            self.edge_endo = EdgeEndomorphism(FeedForward())
+
+        def forward(self, state: State) -> State:
+            return self.edge_endo(self.node_endo(state))
+
+    class SimpleModel(Module):
+        def __init__(self):
+            super().__init__()
+            self.projection_in = ProjectionIn(
+                node_features=8, edge_features=8, position_features=4, velocity_features=4
+            )
+            self.layer = SimpleLayer()
+            self.projection_out = ProjectionOut()
+
+        def forward(self, sample):
+            state = self.projection_in(sample)
+            state = self.layer(state)
+            return self.projection_out(state)
+
+    return SimpleModel()
+
+
+def test_model_energy_invariant_and_force_equivariant():
+    """Energy E(R·x) = E(x) and force F(R·x) = R·F(x)."""
+    torch.manual_seed(42)
+    model = _make_simple_model()
+    model.eval()
+    for _ in range(5):
+        sample = get_random_sample()
+        r = get_random_rotation_matrix()
+        check_model(model, sample=sample, r=r, atol=1e-3, rtol=1e-3)
 
