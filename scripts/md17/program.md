@@ -108,6 +108,10 @@ This uses `submitter poll` + `submit-remote` to run experiments sequentially wit
 **Fully automate optimizer resets until target val_force** (hands-off):
 ```bash
 bash scripts/md17/run_auto_chain.sh 10 --target 1.0 --max 20
+# With weight noise to break memorization (chain A with severe diminishing returns):
+bash scripts/md17/run_auto_chain.sh 16 --use-base --weight-noise 0.003 --target 1.0 --max 20
+# For B+ chain after exp15:
+bash scripts/md17/run_auto_chain.sh 15 --next 17 --target 1.0 --max 20
 ```
 Creates each next experiment via `new_reset_exp.sh`, submits it, waits, checks val_force, and stops automatically when the target is reached. Run after the current experiment has a `best_checkpoint.pt`.
 
