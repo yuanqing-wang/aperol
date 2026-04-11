@@ -156,6 +156,10 @@ def main(exp_dir: str, running: str = "") -> None:
                   f"(~{n_overall * mins_per_reset // 60}h)")
             print(f"  Recent (last 3): ~{pct_recent:.1f}%/reset → ~{n_recent} resets "
                   f"(~{n_recent * mins_per_reset // 60}h)  ← more realistic")
+            # Actionable recommendation when recent rate is very slow
+            if recent_improvement < 0.05 and "B+" in chain_bests:
+                print(f"  ⚠ Chain A diminishing returns (<5%/reset). "
+                      f"Consider switching to B+ chain (best: {chain_bests['B+']:.4f}).")
 
 
 if __name__ == "__main__":
