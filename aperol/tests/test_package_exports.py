@@ -31,13 +31,17 @@ def test_data_importable():
 
 def test_endomorphisms_importable():
     """All endomorphism classes should be importable from aperol top level."""
+    # Scalar endomorphisms (no constructor args needed)
     for name in ["LazySquareLinear", "LazyResidualLinear", "LazyLayerNorm",
-                 "LazySwiGLU", "LazySelfAttention",
-                 "NodeEndomorphism", "EdgeEndomorphism"]:
+                 "LazySwiGLU", "LazySelfAttention"]:
         cls = getattr(aperol, name)
         x = torch.randn(4, 8)
         y = cls()(x)
         assert y.shape == x.shape, f"{name}: shape mismatch {x.shape} vs {y.shape}"
+    # Field endomorphisms require a layers argument
+    from aperol import NodeEndomorphism, EdgeEndomorphism
+    assert NodeEndomorphism is not None
+    assert EdgeEndomorphism is not None
 
 
 def test_layers_importable():
