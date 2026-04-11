@@ -191,15 +191,19 @@ ssh -o ControlMaster=no \
 
 **Submitter commands:**
 ```bash
-submitter status                               # Check which clusters are connected
-submitter connect                              # Open master connections (interactive, MFA required)
-submitter submit-remote trillium <remote-path> # Submit a job script already on the cluster
-submitter poll trillium <jobid>                # Wait for job to finish; exit 0 if COMPLETED
-submitter cancel trillium <jobid>              # Cancel a running/pending job
-submitter watch trillium <jobid>               # Tail job stdout live (Ctrl+C to stop)
-submitter fetch trillium <jobid>               # Copy job log files to current directory
-submitter jobs trillium                        # Show recent jobs (last 24h)
+submitter status                                      # Check which clusters are connected
+submitter connect                                     # Open master connections (interactive, MFA required)
+submitter running [trillium]                          # Show currently running/pending jobs (fast, via squeue)
+submitter submit-remote trillium <remote-path>        # Submit a job script already on the cluster
+submitter poll trillium <jobid>                       # Wait for job to finish; exit 0 if COMPLETED
+submitter cancel trillium <jobid>                     # Cancel a running/pending job
+submitter watch trillium <jobid>                      # Tail job stdout live by job ID (Ctrl+C to stop)
+submitter tail-log trillium <remote-exp-dir>          # Tail most recent log in experiment dir (no job ID needed)
+submitter fetch trillium <jobid>                      # Copy job log files to current directory
+submitter jobs trillium                               # Show recent jobs history (last 24h, via sacct)
 ```
+
+Note: `submitter chain trillium job1.sh job2.sh ...` uses SLURM job dependencies — **does NOT work on the debug partition** (which prohibits pending jobs). Use `submitter poll` + `submit-remote` instead.
 
 **Note on the `debug` partition:** Only one job at a time (no pending jobs allowed — QOS limit). Always wait for the current job to complete before submitting the next. `submitter chain` does NOT work here (it would require a pending slot). Use `submitter poll` + `submit-remote` in a script, or submit manually.
 
