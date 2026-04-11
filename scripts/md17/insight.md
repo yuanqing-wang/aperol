@@ -120,3 +120,6 @@ Chain A requires ~9% reduction per reset. Target <1.0 needs ~20 more resets. Ver
 12. **Vel norm² energy readout** always unstable.
 13. **Legendre P2/P3 angle features** unstable.
 14. **Edge energy readout** creates overfitting.
+15. **Chain A has severe diminishing returns**: improvement per reset fell from ~20% early to ~2-3% after 7+ resets. When this happens, switch to B+ chain (lower ratio, more improvement potential) or try `--weight_noise_std 0.005` to break memorization.
+16. **New training options in base run.py**: `--clip_grad_norm N` (gradient clipping), `--weight_noise_std N` (perturb weights at reset), `--optimizer adamw` (decoupled weight decay), `--scheduler plateau` (ReduceLROnPlateau).
+17. **submitter run-cmd**: avoids raw SSH for cluster commands. Use `submitter run-cmd trillium 'cmd'` instead of `ssh -o ControlPath=... cmd`. All aperol scripts now use submitter throughout.
