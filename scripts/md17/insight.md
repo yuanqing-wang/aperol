@@ -88,16 +88,18 @@ Chain A requires ~9% reduction per reset. Target <1.0 needs ~20 more resets. Ver
 - **Result:** val_force=5.62 (epoch 32, best), final=5.72 (epoch 199). TrainF=1.77. Ratio=3.18.
 - **Takeaway:** Only 2.6% improvement from exp12 (5.77→5.62). Severe diminishing returns.
 
-## Exp 16 — Chain A reset from exp14 (RUNNING, job 426943)
-- **Config:** Standard reset from exp14/best (5.62), no noise, 200 epochs.
-- **Trend:** Best=5.49 at epoch 33. Final ~5.47-5.50 expected.
+## Exp 16 — Chain A reset from exp14 (DONE)
+- **Result:** val_force=5.49 (epoch 33, best), final=5.56 (epoch 199). TrainF=1.63. Ratio=3.37.
+- **Takeaway:** Only 2.4% improvement from exp14 (5.62→5.49). Chain A severely diminished.
 
-## Exp 15 — B+ reset from exp13 (STAGED — submit after exp16 finishes)
+## Exp 15 — B+ first reset from exp13 (RUNNING, job 426958)
 - **Config:** Load exp13/best_checkpoint.pt (16.69), fresh LR=1e-5, 200 epochs.
-- **Expected:** ~10-14 (large improvement from fresh LR on near-converged B+ model)
-- **Submit:** `submitter submit-remote trillium /scratch/yqw/aperol/scripts/md17/experiments/15/job.sh`
-- **Then run B+ auto-chain:** `bash scripts/md17/run_auto_chain.sh 15 --next 17 --target 1.0 --max 20`
-  This auto-creates exps 17, 18, 19... (B+ chain) via optimizer resets until val_force < 1.0.
+- **Epoch 1:** val_force=17.35 (expected — early oscillation with fresh optimizer).
+- **Expected:** ~10-14 at end (25-35% improvement from fresh LR + lower ratio)
+- **After exp15:** Run B+ auto-chain: `bash scripts/md17/run_auto_chain.sh 15 --next 17 --target 1.0 --max 20`
+
+## Exp 17 — Chain A or B+ (STAGED, exp17 dir prepared by user)
+- **Status:** ready to submit after exp15 finishes
 
 ## SWA Ensemble (diagnostic)
 - **Tried:** Averaging weights from exps 8, 10, 11, 12 → val_force=5.92
