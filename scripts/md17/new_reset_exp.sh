@@ -76,6 +76,13 @@ set -euo pipefail
 export PYTHONPATH=/scratch/yqw/aperol
 export WANDB_MODE=offline
 export WANDB_DIR=/scratch/yqw/aperol/scripts/md17/wandb
+
+# Verify init_from checkpoint exists before starting Python
+if [ ! -f "${INIT_FROM}" ]; then
+  echo "ERROR: init_from checkpoint not found: ${INIT_FROM}" >&2
+  exit 1
+fi
+
 conda run -n aperol python -u ${REMOTE_NEW}/run.py \\
   --n_epoch 200 \\
   --learning_rate 1e-5 \\
