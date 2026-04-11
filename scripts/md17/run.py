@@ -266,9 +266,18 @@ def run(args):
     optimizer = torch.optim.Adam(
         model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay
     )
-    scheduler = torch.optim.lr_scheduler.StepLR(
-        optimizer, step_size=args.scheduler_step, gamma=args.scheduler_gamma
-    )
+    if args.scheduler == "plateau":
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer,
+            mode="min",
+            factor=args.scheduler_gamma,
+            patience=args.scheduler_step,
+            min_lr=1e-9,
+        )
+    else:  # "step" (default)
+        scheduler = torch.optim.lr_scheduler.StepLR(
+            optimizer, step_size=args.scheduler_step, gamma=args.scheduler_gamma
+        )
 
     run_name = Path(__file__).parent.name
     start_epoch = 0
@@ -354,8 +363,12 @@ def run(args):
         val_energy_error = val_energy_sum / val_n
         val_force_error = val_force_sum / val_n
 
-        scheduler.step()
-        current_lr = scheduler.get_last_lr()[0]
+        if args.scheduler == "plateau":
+            scheduler.step(val_force_error)
+            current_lr = optimizer.param_groups[0]["lr"]
+        else:
+            scheduler.step()
+            current_lr = scheduler.get_last_lr()[0]
 
         print(
             f"epoch {epoch:>3d} | lr {current_lr:.2e} | "
@@ -417,7 +430,11 @@ if __name__ == "__main__":
     parser.add_argument("--depth", type=int, default=5)
     parser.add_argument("--energy_weight", type=float, default=0.01)
     parser.add_argument("--force_weight", type=float, default=0.99)
-    parser.add_argument("--scheduler_step", type=int, default=10)
+    parser.add_argument("--scheduler", type=str, default="step",
+                        choices=["step", "plateau"],
+                        help="LR scheduler: 'step' (StepLR, default) or 'plateau' (ReduceLROnPlateau)")
+    parser.add_argument("--scheduler_step", type=int, default=10,
+                        help="StepLR: decay every N epochs. Plateau: patience (epochs without improvement)")
     parser.add_argument("--scheduler_gamma", type=float, default=0.5)
     parser.add_argument("--init_from", type=str, default="",
                         help="Load model weights from this checkpoint (optimizer reset)")
