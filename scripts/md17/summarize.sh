@@ -23,14 +23,14 @@ done
 run_once() {
   if [[ -z "${EXP_DIR}" ]]; then
     # Run on remote cluster via master socket
-    SOCK="${HOME}/.config/submitter/sockets/trillium.sock"
-    HOST="yqw@trillium-gpu.scinet.utoronto.ca"
+    CLUSTER="trillium"
+    SOCK="${HOME}/.config/submitter/sockets/${CLUSTER}.sock"
     REMOTE_BASE="/scratch/yqw/aperol"
     REMOTE_PY="${REMOTE_BASE}/scripts/md17/summarize.py"
     REMOTE_EXP="${REMOTE_BASE}/scripts/md17/experiments"
 
     if [[ ! -S "${SOCK}" ]]; then
-      echo "Not connected to trillium. Run 'submitter connect' first." >&2
+      echo "Not connected to ${CLUSTER}. Run 'submitter connect' first." >&2
       return 1
     fi
 
@@ -45,13 +45,12 @@ run_once() {
     fi
 
     # Use the repo's copy of summarize.py (already on cluster via git pull).
-    # Fall back to upload if the remote file is missing.
-    if ! "${SUBMITTER}" run-cmd trillium "test -f '${REMOTE_PY}'" 2>/dev/null; then
-      scp -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes \
-        "${PY}" "${HOST}:${REMOTE_PY}" 2>/dev/null
+    # Fall back to upload via submitter if the remote file is missing.
+    if ! "${SUBMITTER}" run-cmd "${CLUSTER}" "test -f '${REMOTE_PY}'" 2>/dev/null; then
+      "${SUBMITTER}" upload "${CLUSTER}" "${PY}" "${REMOTE_PY}" 2>/dev/null
     fi
 
-    "${SUBMITTER}" run-cmd trillium "python3 '${REMOTE_PY}' '${REMOTE_EXP}' '${RUNNING_EXP}'"
+    "${SUBMITTER}" run-cmd "${CLUSTER}" "python3 '${REMOTE_PY}' '${REMOTE_EXP}' '${RUNNING_EXP}'"
   else
     python3 "${PY}" "${EXP_DIR}"
   fi
