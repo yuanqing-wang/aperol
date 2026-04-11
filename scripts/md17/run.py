@@ -303,6 +303,8 @@ def run(args):
     else:
         wandb.init(project="aperol-md17", name=run_name, config=vars(args))
 
+    best_val_force = float("inf")
+
     for epoch in range(start_epoch, start_epoch + args.n_epoch):
         # ---- Training ----
         model.train()
@@ -372,13 +374,20 @@ def run(args):
         })
 
         if args.checkpoint:
-            torch.save({
+            ckpt_data = {
                 "model": model,
                 "optimizer": optimizer,
                 "scheduler": scheduler,
                 "epoch": epoch,
                 "wandb_run_id": wandb.run.id,
-            }, args.checkpoint)
+            }
+            torch.save(ckpt_data, args.checkpoint)
+            # Also save best-val checkpoint separately for analysis/init
+            if val_force_error < best_val_force:
+                best_val_force = val_force_error
+                best_path = Path(args.checkpoint).with_name("best_checkpoint.pt")
+                torch.save(ckpt_data, best_path)
+                print(f"  → new best val_force={val_force_error:.4f}, saved to {best_path.name}", flush=True)
             metrics_path = Path(args.checkpoint).with_name("metrics.jsonl")
             with open(metrics_path, "a") as f:
                 f.write(json.dumps({
