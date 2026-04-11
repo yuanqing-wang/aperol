@@ -144,6 +144,21 @@ class MD17Dataset(Dataset):
     def n_atom_features(self) -> int:
         return self.atom_type.shape[-1]
 
+    def unnormalize_energy(self, normalized: torch.Tensor) -> torch.Tensor:
+        """Convert normalized energy predictions back to original units (kcal/mol).
+
+        Parameters
+        ----------
+        normalized : torch.Tensor
+            Energy values in normalized space (zero mean, unit std).
+
+        Returns
+        -------
+        torch.Tensor
+            Energy values in the original kcal/mol units.
+        """
+        return normalized * self.energy_std + self.energy_mean
+
 
 def load_md17(molecule: str, n_tr: int, n_vl: int = 0, seed: int = 2666):
     """Return train / validation / test ``MD17Dataset`` splits.
