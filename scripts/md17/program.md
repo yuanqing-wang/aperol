@@ -111,9 +111,10 @@ bash scripts/md17/run_auto_chain.sh 10 --target 1.0 --max 20
 ```
 Creates each next experiment via `new_reset_exp.sh`, submits it, waits, checks val_force, and stops automatically when the target is reached. Run after the current experiment has a `best_checkpoint.pt`.
 
-**Show a summary table** of all experiment results:
+**Show a summary table** of all experiment results (includes chain label A/B/B+):
 ```bash
-bash scripts/md17/summarize.sh
+bash scripts/md17/summarize.sh          # one-shot
+bash scripts/md17/summarize.sh --watch  # refresh every 30s (Ctrl+C to stop)
 ```
 
 **Read metrics** after each run via SSH:
