@@ -49,6 +49,7 @@ def evaluate(ckpt_path: Path, data: str, n_tr: int, n_vl: int,
 
     val_force_sum = val_energy_sum = 0.0
     val_n = 0
+    preds, targets = [], []
     for batch in val_loader:
         batch = batch.to(device)
         batch.position.requires_grad_(True)
@@ -58,10 +59,26 @@ def evaluate(ckpt_path: Path, data: str, n_tr: int, n_vl: int,
         val_energy_sum += F.mse_loss(energy, batch.energy).item() * B
         val_force_sum += F.mse_loss(force, batch.force).item() * B
         val_n += B
+        preds.append(energy.detach())
+        targets.append(batch.energy.detach())
+
+    # Calibrated energy error: fit a*pred + b = true via OLS, then compute MSE
+    preds_all = torch.cat(preds)
+    targets_all = torch.cat(targets)
+    A = torch.stack([preds_all, torch.ones_like(preds_all)], dim=1)  # (N, 2)
+    try:
+        coeffs, _, _, _ = torch.linalg.lstsq(A, targets_all.unsqueeze(-1))
+        a, b = coeffs[0, 0].item(), coeffs[1, 0].item()
+        cal_preds = a * preds_all + b
+        cal_energy_mse = F.mse_loss(cal_preds, targets_all).item()
+    except Exception:
+        a, b, cal_energy_mse = float("nan"), float("nan"), float("nan")
 
     return {
         "val_force_mse": val_force_sum / val_n,
         "val_energy_mse": val_energy_sum / val_n,
+        "val_energy_cal_mse": cal_energy_mse,  # after linear calibration
+        "cal_a": a, "cal_b": b,
         "n_val": val_n,
     }
 
@@ -94,8 +111,10 @@ def main():
     results = evaluate(ckpt_path, args.data, args.n_tr, args.n_vl, args.batch_size)
 
     print(f"\nResults (n_val={results['n_val']}):")
-    print(f"  val_force_mse  = {results['val_force_mse']:.4f}")
-    print(f"  val_energy_mse = {results['val_energy_mse']:.4f}")
+    print(f"  val_force_mse      = {results['val_force_mse']:.4f}  (primary metric)")
+    print(f"  val_energy_mse     = {results['val_energy_mse']:.4f}  (raw, includes constant offset)")
+    print(f"  val_energy_cal_mse = {results['val_energy_cal_mse']:.4f}  (after linear calibration)")
+    print(f"  calibration: E_true ≈ {results['cal_a']:.3f} * E_pred + {results['cal_b']:.3f}")
     print(json.dumps(results))
 
 
