@@ -354,6 +354,8 @@ def run(args):
             loss = args.energy_weight * energy_loss + args.force_weight * force_loss
             optimizer.zero_grad()
             loss.backward()
+            if args.clip_grad_norm > 0:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip_grad_norm)
             optimizer.step()
             B = sample.energy.shape[0]
             train_energy_sum += energy_loss.item() * B
@@ -451,6 +453,8 @@ if __name__ == "__main__":
     parser.add_argument("--depth", type=int, default=5)
     parser.add_argument("--energy_weight", type=float, default=0.01)
     parser.add_argument("--force_weight", type=float, default=0.99)
+    parser.add_argument("--clip_grad_norm", type=float, default=0.0,
+                        help="Max gradient norm for clipping (0=disabled). Try 1.0-5.0 to prevent large updates.")
     parser.add_argument("--weight_noise_std", type=float, default=0.0,
                         help="Std of Gaussian noise added to all weights at optimizer reset. "
                              "Breaks exact memorization; try 0.001-0.01 for chain A.")
