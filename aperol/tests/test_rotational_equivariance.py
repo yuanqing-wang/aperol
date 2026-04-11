@@ -11,7 +11,10 @@ from aperol.layers import (
     EdgeToNodeAttention,
     EdgeToNodeMax,
     EdgeToNodeMean,
+    EdgeToPositionAggregation,
+    EdgeToVelocityAggregation,
     NodeToEdgeBroadcast,
+    NodeToEdgeSenderBroadcast,
     NodeToVelocityDamping,
     PositionToEdgeERBFSmearing,
     PositionToEdgeRBFSmearing,
@@ -25,6 +28,7 @@ from aperol.layers import (
 
 LAYER_FACTORIES = [
     ("NodeToEdgeBroadcast", lambda: NodeToEdgeBroadcast(get_simple_endomorphism())),
+    ("NodeToEdgeSenderBroadcast", lambda: NodeToEdgeSenderBroadcast(get_simple_endomorphism())),
     ("VelocityDotToEdge", lambda: VelocityDotToEdge(get_simple_endomorphism())),
     ("VelocityNormToNode", lambda: VelocityNormToNode(get_simple_endomorphism())),
     ("VelocityProjection", lambda: VelocityProjection()),
@@ -37,6 +41,8 @@ LAYER_FACTORIES = [
     ("EdgeToNodeMax", lambda: EdgeToNodeMax(get_simple_endomorphism())),
     ("EdgeToNodeAttention", lambda: EdgeToNodeAttention(get_simple_endomorphism())),
     ("NodeToVelocityDamping", lambda: NodeToVelocityDamping(get_simple_endomorphism())),
+    ("EdgeToPositionAggregation", lambda: EdgeToPositionAggregation(get_simple_endomorphism())),
+    ("EdgeToVelocityAggregation", lambda: EdgeToVelocityAggregation(get_simple_endomorphism())),
 ]
 
 
