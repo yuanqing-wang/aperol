@@ -169,13 +169,15 @@ def main(exp_dir: str, running: str = "") -> None:
                  if _detect_chain(exp_dir, str(exp_n)) == "B+"],
             )
             # Remove the running experiment if it has few epochs (noisy best)
+            # Threshold: only include a running experiment if it has >= 100 epochs
+            # (5+ LR decays), so its best val reflects a reasonably converged state.
             if bplus_exps and running:
                 try:
                     running_n = int(running)
                     if running_n == bplus_exps[-1]:
                         m = os.path.join(exp_dir, str(running_n), "metrics.jsonl")
                         n_epochs = sum(1 for _ in open(m)) if os.path.exists(m) else 0
-                        if n_epochs < 50:
+                        if n_epochs < 100:
                             bplus_exps = bplus_exps[:-1]  # drop early-running exp
                 except (ValueError, OSError):
                     pass
