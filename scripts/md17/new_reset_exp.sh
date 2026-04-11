@@ -15,6 +15,7 @@
 #   bash scripts/md17/new_reset_exp.sh 11 12           # exp12 from exp11/best
 #   bash scripts/md17/new_reset_exp.sh 11 12 --use-final-ckpt  # use exp11/checkpoint.pt
 #   bash scripts/md17/new_reset_exp.sh 9 12 --use-run 11  # exp12 from exp9 ckpt, exp11 arch
+#   bash scripts/md17/new_reset_exp.sh 16 17 --use-base  # use base run.py (has --weight_noise_std etc.)
 
 set -euo pipefail
 
@@ -38,6 +39,7 @@ EXTRA_ARGS=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --use-run)        RUN_SOURCE="$2"; shift 2 ;;
+    --use-base)       RUN_SOURCE="base"; shift ;;
     --use-final-ckpt) USE_FINAL_CKPT=1; shift ;;
     --extra-args)     EXTRA_ARGS="$2"; shift 2 ;;
     --weight-noise)   EXTRA_ARGS="${EXTRA_ARGS} --weight_noise_std $2"; shift 2 ;;
@@ -85,12 +87,18 @@ echo "Creating exp${NEW} (optimizer reset from exp${PREV})..."
 echo "  init_from: ${INIT_FROM}"
 
 # Create directory, copy run.py, update first docstring line
-# NOTE: run.py is copied from RUN_SOURCE (default=PREV), not always PREV.
-#       Use --use-run N to pick a specific architecture when chains diverge.
-echo "  run.py source: exp${RUN_SOURCE}"
+# RUN_SOURCE can be: a number (exp N's run.py), "base" (scripts/md17/run.py), or default=PREV.
+REMOTE_REPO_BASE="/scratch/yqw/aperol"
+if [[ "${RUN_SOURCE}" == "base" ]]; then
+  RUN_PY_SRC="${REMOTE_REPO_BASE}/scripts/md17/run.py"
+  echo "  run.py source: base template (${RUN_PY_SRC})"
+else
+  RUN_PY_SRC="${REMOTE_BASE}/${RUN_SOURCE}/run.py"
+  echo "  run.py source: exp${RUN_SOURCE}"
+fi
 "${SUBMITTER}" run-cmd "${CLUSTER}" "
   mkdir -p '${REMOTE_NEW}'
-  cp '${REMOTE_BASE}/${RUN_SOURCE}/run.py' '${REMOTE_NEW}/run.py'
+  cp '${RUN_PY_SRC}' '${REMOTE_NEW}/run.py'
   sed -i '1s|^\"\"\".*$|\"\"\"Exp ${NEW} — Optimizer reset from exp${PREV} best_checkpoint.|' '${REMOTE_NEW}/run.py'
 "
 
