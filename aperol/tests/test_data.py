@@ -168,3 +168,49 @@ def test_md17dataset_energy_normalization_constants_consistent(tmp_path):
         assert abs(train.energy_std - val.energy_std) < 1e-4
     finally:
         m17._local_path = orig
+
+
+# ---------------------------------------------------------------------------
+# State tests
+# ---------------------------------------------------------------------------
+
+def test_state_repr():
+    """State.__repr__ should include field names and tensor shapes."""
+    state = State(
+        node=torch.randn(5, 8),
+        edge=torch.randn(5, 5, 8),
+        position=torch.randn(5, 3, 4),
+        velocity=torch.randn(5, 3, 4),
+    )
+    r = repr(state)
+    assert "State(" in r
+    assert "node" in r
+    assert "edge" in r
+    assert "position" in r
+    assert "velocity" in r
+
+
+def test_state_to_device():
+    """State.to() should move all tensors to the target device."""
+    state = State(
+        node=torch.randn(3, 4),
+        edge=torch.randn(3, 3, 4),
+        position=torch.randn(3, 3, 2),
+        velocity=torch.randn(3, 3, 2),
+    )
+    state_cpu = state.to(torch.device("cpu"))
+    assert state_cpu.node.device.type == "cpu"
+    assert state_cpu.edge.device.type == "cpu"
+
+
+def test_state_detach():
+    """State.detach() should produce tensors not attached to the grad graph."""
+    node = torch.randn(3, 4, requires_grad=True)
+    state = State(
+        node=node,
+        edge=torch.randn(3, 3, 4),
+        position=torch.randn(3, 3, 2),
+        velocity=torch.randn(3, 3, 2),
+    )
+    detached = state.detach()
+    assert not detached.node.requires_grad
