@@ -37,11 +37,11 @@ REMOTE_NEW="${REMOTE_BASE}/${NEW}"
 echo "Creating exp${NEW} (optimizer reset from exp${PREV})..."
 echo "  init_from: ${INIT_FROM}"
 
-# Create directory and copy run.py
+# Create directory, copy run.py, update first docstring line
 ssh -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes "${HOST}" "
   mkdir -p '${REMOTE_NEW}'
   cp '${REMOTE_BASE}/${PREV}/run.py' '${REMOTE_NEW}/run.py'
-  echo '# Docstring auto-updated by new_reset_exp.sh' > /dev/null
+  sed -i '1s|^\"\"\".*$|\"\"\"Exp ${NEW} — Optimizer reset from exp${PREV} best_checkpoint.|' '${REMOTE_NEW}/run.py'
 "
 
 # Write job.sh
