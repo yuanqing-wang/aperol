@@ -18,6 +18,8 @@
 
 set -euo pipefail
 
+SUBMITTER="${HOME}/Documents/GitHub/submitter/submitter"
+CLUSTER="trillium"
 SOCK="${HOME}/.config/submitter/sockets/trillium.sock"
 HOST="yqw@trillium-gpu.scinet.utoronto.ca"
 REMOTE_BASE="/scratch/yqw/aperol/scripts/md17/experiments"
@@ -54,9 +56,8 @@ if [[ "${USE_FINAL_CKPT}" == "1" ]]; then
   echo "Note: using final checkpoint.pt (not best_checkpoint.pt)"
 else
   INIT_FROM="${REMOTE_BASE}/${PREV}/best_checkpoint.pt"
-  # Check if best_checkpoint exists on cluster
-  if ! ssh -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes "${HOST}" \
-      "test -f '${INIT_FROM}'" 2>/dev/null; then
+  # Check if best_checkpoint exists on cluster (via submitter)
+  if ! "${SUBMITTER}" run-cmd "${CLUSTER}" "test -f '${INIT_FROM}'" 2>/dev/null; then
     INIT_FROM="${REMOTE_BASE}/${PREV}/checkpoint.pt"
     echo "Note: best_checkpoint.pt not found for exp${PREV}, using checkpoint.pt"
   fi
@@ -65,8 +66,7 @@ fi
 REMOTE_NEW="${REMOTE_BASE}/${NEW}"
 
 # Guard: warn if destination already has a checkpoint (would overwrite a running/done exp)
-if ssh -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes "${HOST}" \
-    "test -f '${REMOTE_NEW}/checkpoint.pt'" 2>/dev/null; then
+if "${SUBMITTER}" run-cmd "${CLUSTER}" "test -f '${REMOTE_NEW}/checkpoint.pt'" 2>/dev/null; then
   echo "WARNING: ${REMOTE_NEW}/checkpoint.pt already exists." >&2
   echo "  This experiment may already be running or completed." >&2
   if [[ -t 0 ]]; then
@@ -87,15 +87,14 @@ echo "  init_from: ${INIT_FROM}"
 # NOTE: run.py is copied from RUN_SOURCE (default=PREV), not always PREV.
 #       Use --use-run N to pick a specific architecture when chains diverge.
 echo "  run.py source: exp${RUN_SOURCE}"
-ssh -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes "${HOST}" "
+"${SUBMITTER}" run-cmd "${CLUSTER}" "
   mkdir -p '${REMOTE_NEW}'
   cp '${REMOTE_BASE}/${RUN_SOURCE}/run.py' '${REMOTE_NEW}/run.py'
   sed -i '1s|^\"\"\".*$|\"\"\"Exp ${NEW} — Optimizer reset from exp${PREV} best_checkpoint.|' '${REMOTE_NEW}/run.py'
 "
 
-# Write job.sh
-ssh -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes "${HOST}" \
-  "cat > '${REMOTE_NEW}/job.sh'" << EOF
+# Write job.sh (must use submitter run-cmd with stdin for cat heredoc)
+"${SUBMITTER}" run-cmd "${CLUSTER}" "cat > '${REMOTE_NEW}/job.sh'" << EOF
 #!/bin/bash
 #SBATCH -J aperol_exp${NEW}
 #SBATCH --partition=debug
