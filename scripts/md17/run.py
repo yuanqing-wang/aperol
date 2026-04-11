@@ -263,9 +263,14 @@ def run(args):
         depth=args.depth,
     ).to(device)
 
-    optimizer = torch.optim.Adam(
-        model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay
-    )
+    if args.optimizer == "adamw":
+        optimizer = torch.optim.AdamW(
+            model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay
+        )
+    else:  # "adam" (default)
+        optimizer = torch.optim.Adam(
+            model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay
+        )
     if args.scheduler == "plateau":
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             optimizer,
@@ -299,13 +304,24 @@ def run(args):
     elif args.init_from and os.path.exists(args.init_from):
         ckpt = torch.load(args.init_from, map_location=device, weights_only=False)
         model = ckpt["model"].to(device)
-        optimizer = torch.optim.Adam(
-            model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay
-        )
-        scheduler = torch.optim.lr_scheduler.StepLR(
-            optimizer, step_size=args.scheduler_step, gamma=args.scheduler_gamma
-        )
-        print(f"Loaded model from {args.init_from}, fresh optimizer LR={args.learning_rate}", flush=True)
+        if args.optimizer == "adamw":
+            optimizer = torch.optim.AdamW(
+                model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay
+            )
+        else:
+            optimizer = torch.optim.Adam(
+                model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay
+            )
+        if args.scheduler == "plateau":
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                optimizer, mode="min", factor=args.scheduler_gamma,
+                patience=args.scheduler_step, min_lr=1e-9,
+            )
+        else:
+            scheduler = torch.optim.lr_scheduler.StepLR(
+                optimizer, step_size=args.scheduler_step, gamma=args.scheduler_gamma
+            )
+        print(f"Loaded model from {args.init_from}, fresh {args.optimizer} LR={args.learning_rate}", flush=True)
 
     if wandb_run_id:
         wandb.init(project="aperol-md17", id=wandb_run_id, resume="must")
@@ -430,6 +446,9 @@ if __name__ == "__main__":
     parser.add_argument("--depth", type=int, default=5)
     parser.add_argument("--energy_weight", type=float, default=0.01)
     parser.add_argument("--force_weight", type=float, default=0.99)
+    parser.add_argument("--optimizer", type=str, default="adam",
+                        choices=["adam", "adamw"],
+                        help="Optimizer: 'adam' (default) or 'adamw' (decoupled weight decay)")
     parser.add_argument("--scheduler", type=str, default="step",
                         choices=["step", "plateau"],
                         help="LR scheduler: 'step' (StepLR, default) or 'plateau' (ReduceLROnPlateau)")
