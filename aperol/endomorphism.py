@@ -90,6 +90,45 @@ class LazyLayerNorm(Endomorphism):
             bias=self.bias,
         )
         
+class LazySwiGLU(Endomorphism):
+    """Lazy SwiGLU gated linear unit: output = SiLU(W_gate·x) * (W_proj·x).
+
+    More expressive than a plain linear layer — the gate selectively
+    amplifies or suppresses features. Same output dimension as input.
+    Double the parameters of LazySquareLinear.
+
+    Examples
+    --------
+    >>> gate = LazySwiGLU()
+    >>> x = torch.randn(5, 8)
+    >>> y = gate(x)
+    >>> assert y.shape == x.shape
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.weight_proj = torch.nn.UninitializedParameter()
+        self.weight_gate = torch.nn.UninitializedParameter()
+        self.bias_proj   = torch.nn.UninitializedParameter()
+        self.bias_gate   = torch.nn.UninitializedParameter()
+
+    def initialize_parameters(self, x):
+        D = x.shape[-1]
+        self.weight_proj.materialize((D, D))
+        self.weight_gate.materialize((D, D))
+        self.bias_proj.materialize((D,))
+        self.bias_gate.materialize((D,))
+        torch.nn.init.xavier_uniform_(self.weight_proj)
+        torch.nn.init.xavier_uniform_(self.weight_gate)
+        torch.nn.init.zeros_(self.bias_proj)
+        torch.nn.init.zeros_(self.bias_gate)
+
+    def forward(self, x):
+        proj = x @ self.weight_proj + self.bias_proj
+        gate = x @ self.weight_gate + self.bias_gate
+        return torch.nn.functional.silu(gate) * proj
+
+
 class LazySelfAttention(Endomorphism):
     """ Lazy self attention.
     
