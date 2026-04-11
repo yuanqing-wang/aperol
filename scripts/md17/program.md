@@ -167,13 +167,14 @@ ssh -o ControlMaster=no \
 
 **Submitter commands:**
 ```bash
-submitter status                              # Check which clusters are connected
-submitter connect                             # Open master connections (interactive, MFA required)
+submitter status                               # Check which clusters are connected
+submitter connect                              # Open master connections (interactive, MFA required)
 submitter submit-remote trillium <remote-path> # Submit a job script already on the cluster
-submitter cancel trillium <jobid>             # Cancel a running/pending job
-submitter watch trillium <jobid>              # Tail job stdout live (Ctrl+C to stop)
-submitter fetch trillium <jobid>              # Copy job log files to current directory
-submitter jobs trillium                       # Show recent jobs (last 24h)
+submitter poll trillium <jobid>                # Wait for job to finish; exit 0 if COMPLETED
+submitter cancel trillium <jobid>              # Cancel a running/pending job
+submitter watch trillium <jobid>               # Tail job stdout live (Ctrl+C to stop)
+submitter fetch trillium <jobid>               # Copy job log files to current directory
+submitter jobs trillium                        # Show recent jobs (last 24h)
 ```
 
 **Note on the `debug` partition:** Only one job can run at a time. Never submit a new job while one is already queued or running — always wait for the current job to finish first.
