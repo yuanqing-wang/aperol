@@ -35,14 +35,18 @@
 - **Trend:** 11.9(ep0)→8.57(ep60, best). Each LR decay gave improvement.
 - **Takeaway:** Another ~10% reduction (9.53→8.57 best). Ratio growing (1.61→1.84). Best improvement came at epoch 60 after LR decay.
 
-## Exp 6 — Fourth optimizer reset from Exp 5/best_checkpoint (RUNNING, job 426795)
-- **Config:** Load exp5/best_checkpoint.pt (val_force=8.57), fresh LR=1e-5, StepLR(step_size=20, gamma=0.5), 80 epochs.
-- **Trend:** val_force 8.64(ep7)→8.17(ep21)→**8.06(ep26, new best!)**. Very fast convergence from best_checkpoint start.
+## Exp 6 — Fourth optimizer reset from Exp 5/best_checkpoint
+- **Result:** val_force=8.03 (epoch 40, best), final=8.09 (epoch 79). TrainF=4.08. Ratio=1.97.
+- **Config:** Load exp5/best_checkpoint.pt (8.57), fresh LR=1e-5, StepLR(step_size=20, gamma=0.5), 80 epochs.
+- **Takeaway:** Only ~6% improvement from exp5's 8.57. The 80-epoch schedule doesn't deplete LR fully (only 4 decays). Exp 7 uses 200 epochs for more thorough optimization.
 
-## Exps 7–8 — Planned (jobs.sh updated to 200 epochs, --time=2:00:00)
-- Debug partition allows 2 hours (not 59 min). 200 epochs = LR depleted from 1e-5 to ~1e-8.
-- **Exp 7:** init_from exp6/best_checkpoint.pt → 200 epochs → expected val_force ~5.0-6.0
-- **Exp 8:** init_from exp7/best_checkpoint.pt → 200 epochs → expected val_force ~3.5-4.5
+## Exp 7 — Fifth optimizer reset from Exp 6/best_checkpoint (RUNNING, job 426798)
+- **Config:** Load exp6/best_checkpoint.pt (8.03), fresh LR=1e-5, StepLR(step_size=20, gamma=0.5), **200 epochs** (2:00:00 time limit).
+- **200 epochs = 10 LR decays**: LR goes 1e-5 → ~9.8e-9 (fully depleted!).
+- **Expected:** Much larger improvement per reset than exp 6's ~6%. Possibly 25-35% → val_force ~5.2-6.0.
+
+## Exp 8 — Planned (job.sh ready, 200 epochs)
+- **Config:** Load exp7/best_checkpoint.pt → expected val_force ~3.4-4.5
 
 ## Exp 3 — Bold: sender+receiver broadcasts from scratch (queued)
 - **Config:** Same as exp1 but Layer adds `NodeToEdgeSenderBroadcast` alongside `NodeToEdgeBroadcast` in each layer. Fresh start (can't share checkpoints with exp1 chain).
