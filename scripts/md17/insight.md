@@ -99,8 +99,8 @@ Chain A requires ~9% reduction per reset. Target <1.0 needs ~20 more resets. Ver
 
 ## Exp 18 — B+ second reset from exp15 (RUNNING, job 427027)
 - **Config:** Load exp15/best_checkpoint.pt (13.19), fresh LR=1e-5, 200 epochs.
-- **Trend:** Best=12.63 at epoch 16, ratio=1.80. Already below exp15's 13.19!
-- **Expected final:** ~10.4 (~21% improvement from 13.19)
+- **Trend:** Best=11.60 at epoch 84, ratio=2.21. 12.1% improvement so far!
+- **Expected final:** ~10.4 (~21% total improvement from 13.19)
 - **After exp18:** Run hands-off B+ chain to <1.0:
   ```bash
   # Option A: wait for exp18 via poll-watch, then start auto-chain
