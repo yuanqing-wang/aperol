@@ -74,3 +74,9 @@ done
 
 echo ""
 echo "Chain complete: experiments $* finished."
+last_exp="${@: -1}"
+echo ""
+echo "Next steps:"
+echo "  Prepare next optimizer reset: bash scripts/md17/new_reset_exp.sh ${last_exp}"
+echo "  Or run a bold architecture experiment: edit experiments/{n}/run.py, then"
+echo "    submitter submit-remote trillium /scratch/yqw/aperol/scripts/md17/experiments/{n}/job.sh"
