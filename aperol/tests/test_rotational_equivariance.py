@@ -134,3 +134,20 @@ def test_check_model_restores_training_mode():
     check_model(model)
     assert not model.training, "check_model should preserve eval mode"
 
+
+def test_check_layer_restores_training_mode():
+    """check_layer should restore the layer's original training mode."""
+    layer = NodeToEdgeBroadcast(get_simple_endomorphism())
+
+    # Start in train mode — check_layer should put it back
+    layer.train()
+    assert layer.training
+    check_layer(layer)
+    assert layer.training, "check_layer should restore train mode"
+
+    # Start in eval mode — check_layer should keep it
+    layer.eval()
+    assert not layer.training
+    check_layer(layer)
+    assert not layer.training, "check_layer should preserve eval mode"
+
