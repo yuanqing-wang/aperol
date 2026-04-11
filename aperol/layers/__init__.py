@@ -1,5 +1,5 @@
 from .en import EdgeToNodeAggregation, EdgeToNodeMean, EdgeToNodeMax, AttentionAggregation, EdgeToNodeAttention
-from .ne import NodeToEdgeBroadcast
+from .ne import NodeToEdgeBroadcast, NodeToEdgeSenderBroadcast
 from .nv import NodeToVelocityDamping
 from .ve import VelocityDotToEdge
 from .vn import VelocityNormToNode
