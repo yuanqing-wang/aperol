@@ -161,6 +161,26 @@ def main(exp_dir: str, running: str = "") -> None:
                 print(f"  ⚠ Chain A diminishing returns (<5%/reset). "
                       f"Consider switching to B+ chain (best: {chain_bests['B+']:.4f}).")
 
+            # Show B+ improvement rate separately if available
+            bplus_exps = sorted(
+                [exp_n for exp_n in best_vals_by_entry
+                 if _detect_chain(exp_dir, str(exp_n)) == "B+"],
+            )
+            if len(bplus_exps) >= 2:
+                bplus_improvements = []
+                for i in range(1, len(bplus_exps)):
+                    prev_v = best_vals_by_entry[bplus_exps[i - 1]]
+                    curr_v = best_vals_by_entry[bplus_exps[i]]
+                    if curr_v < prev_v:
+                        bplus_improvements.append((prev_v - curr_v) / prev_v)
+                if bplus_improvements:
+                    bplus_avg = sum(bplus_improvements) / len(bplus_improvements)
+                    bplus_n = math.ceil(
+                        math.log(target / chain_bests["B+"]) / math.log(1 - bplus_avg)
+                    )
+                    print(f"  B+ avg: ~{bplus_avg * 100:.1f}%/reset → ~{bplus_n} more resets "
+                          f"(~{bplus_n * mins_per_reset // 60}h) from current best {chain_bests['B+']:.4f}")
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
