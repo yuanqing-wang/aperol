@@ -36,7 +36,8 @@ run_once() {
 
     # Detect the currently-running aperol experiment via submitter running
     RUNNING_EXP=""
-    SUBMITTER="${HOME}/Documents/GitHub/submitter/submitter"
+    # Find submitter: prefer PATH, fall back to known local install
+    SUBMITTER="$(command -v submitter 2>/dev/null || echo "${HOME}/Documents/GitHub/submitter/submitter")"
     if [[ -x "${SUBMITTER}" ]]; then
       running_raw=$("${SUBMITTER}" running trillium 2>/dev/null | grep 'aperol_exp' | awk '{print $2}' | head -1 || true)
       if [[ "${running_raw}" =~ ^aperol_exp([0-9]+)$ ]]; then
