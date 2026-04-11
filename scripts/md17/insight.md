@@ -27,14 +27,10 @@
 - **Config:** Load exp2/checkpoint.pt, fresh Adam LR=1e-5, StepLR(step_size=20, gamma=0.5).
 - **Expected:** val_force ≈ 7-9 after 80 epochs.
 
-## Exp 3 — Bold: sender+receiver broadcasts from scratch (ready to run)
-- **Config:** Same as exp1 but Layer adds NodeToEdgeSenderBroadcast. Trains from scratch.
-- **Status:** Prepared, job.sh ready. Run after exp 4 to compare architecture.
-
-## Exp 3 — Bold: sender+receiver broadcasts from scratch
-- **Config:** Same as exp1 but Layer adds NodeToEdgeSenderBroadcast alongside NodeToEdgeBroadcast.
-- **Hypothesis:** Full sender+receiver per-layer messages enable richer directed message passing.
-- **Status:** Prepared, job.sh ready. Run after exp 2.
+## Exp 3 — Bold: sender+receiver broadcasts from scratch (queued)
+- **Config:** Same as exp1 but Layer adds `NodeToEdgeSenderBroadcast` alongside `NodeToEdgeBroadcast` in each layer. Fresh start (can't share checkpoints with exp1 chain).
+- **Hypothesis:** Full per-layer sender+receiver edge messages enable richer directed message passing vs receiver-only (exp1).
+- **Status:** Prepared, job.sh ready. Submit after exp 4 finishes.
 
 ---
 
