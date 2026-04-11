@@ -71,7 +71,8 @@ for ((i = 1; i <= MAX_NEW; i++)); do
   RESET_ARGS=()
   [[ -n "${USE_RUN}" ]]        && RESET_ARGS+=(--use-run "${USE_RUN}")
   [[ -n "${USE_FINAL_CKPT}" ]] && RESET_ARGS+=(--use-final-ckpt)
-  bash "${NEW_RESET}" "${PREV}" "${NEW}" "${RESET_ARGS[@]}"
+  # Use ${RESET_ARGS[@]:+"${RESET_ARGS[@]}"} to safely expand empty arrays in bash 3.x
+  bash "${NEW_RESET}" "${PREV}" "${NEW}" ${RESET_ARGS[@]:+"${RESET_ARGS[@]}"}
 
   echo ""
   echo "=== Submitting exp${NEW} ==="
