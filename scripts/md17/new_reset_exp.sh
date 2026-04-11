@@ -41,6 +41,7 @@ while [[ $# -gt 0 ]]; do
     --use-final-ckpt) USE_FINAL_CKPT=1; shift ;;
     --extra-args)     EXTRA_ARGS="$2"; shift 2 ;;
     --weight-noise)   EXTRA_ARGS="${EXTRA_ARGS} --weight_noise_std $2"; shift 2 ;;
+    --clip-grad)      EXTRA_ARGS="${EXTRA_ARGS} --clip_grad_norm $2"; shift 2 ;;
     --adamw)          EXTRA_ARGS="${EXTRA_ARGS} --optimizer adamw"; shift ;;
     --plateau)        EXTRA_ARGS="${EXTRA_ARGS} --scheduler plateau"; shift ;;
     *) NEW="$1"; shift ;;
