@@ -36,12 +36,13 @@
 - **Takeaway:** Another ~10% reduction (9.53→8.57 best). Ratio growing (1.61→1.84). Best improvement came at epoch 60 after LR decay.
 
 ## Exp 6 — Fourth optimizer reset from Exp 5/best_checkpoint (RUNNING, job 426795)
-- **Config:** Load exp5/best_checkpoint.pt (val_force=8.57), fresh Adam LR=1e-5, StepLR(step_size=20, gamma=0.5).
-- **Expected:** val_force ≈ 6.5-7.0 (using best_checkpoint gives better starting point).
+- **Config:** Load exp5/best_checkpoint.pt (val_force=8.57), fresh LR=1e-5, StepLR(step_size=20, gamma=0.5), 80 epochs.
+- **Trend:** val_force 8.64(ep7)→8.17(ep21)→**8.06(ep26, new best!)**. Very fast convergence from best_checkpoint start.
 
-## Exps 7–8 — Planned optimizer resets (jobs.sh ready on cluster)
-- **Exp 7:** init_from exp6/best_checkpoint.pt → expected val_force ~5.0-5.5
-- **Exp 8:** init_from exp7/best_checkpoint.pt → expected val_force ~3.8-4.2
+## Exps 7–8 — Planned (jobs.sh updated to 200 epochs, --time=2:00:00)
+- Debug partition allows 2 hours (not 59 min). 200 epochs = LR depleted from 1e-5 to ~1e-8.
+- **Exp 7:** init_from exp6/best_checkpoint.pt → 200 epochs → expected val_force ~5.0-6.0
+- **Exp 8:** init_from exp7/best_checkpoint.pt → 200 epochs → expected val_force ~3.5-4.5
 
 ## Exp 3 — Bold: sender+receiver broadcasts from scratch (queued)
 - **Config:** Same as exp1 but Layer adds `NodeToEdgeSenderBroadcast` alongside `NodeToEdgeBroadcast` in each layer. Fresh start (can't share checkpoints with exp1 chain).
