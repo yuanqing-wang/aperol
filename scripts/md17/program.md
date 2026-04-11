@@ -80,8 +80,10 @@ ssh ... 'sbatch /scratch/yqw/aperol/scripts/md17/experiments/{n}/job.sh'
 ```
 
 Choose `k` based on data size:
-- **n_tr=1000** (default): ~20s/epoch on Trillium GPU → use `k=80–100` to fill the 59-minute slot.
-- Probe a new hypothesis cheaply with `k=5`; use `k=80` when a run looks promising.
+- **n_tr=1000** (default): ~20s/epoch on Trillium GPU.
+  - Debug partition max is **2 hours** (not 59 min!) → use `k=200–300` to fully deplete LR.
+  - `k=200` with StepLR(step_size=20, gamma=0.5) brings LR from 1e-5 → ~1e-8 (fully depleted).
+  - Probe cheaply with `k=5`; use `k=200` for optimizer-reset experiments.
 Training resumes from the checkpoint if it exists and appends to `metrics.jsonl` automatically.
 
 **Only one job may be submitted at a time** (debug partition constraint). Always wait for the current job to finish before submitting the next.
