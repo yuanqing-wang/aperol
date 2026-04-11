@@ -161,11 +161,24 @@ def main(exp_dir: str, running: str = "") -> None:
                 print(f"  ⚠ Chain A diminishing returns (<5%/reset). "
                       f"Consider switching to B+ chain (best: {chain_bests['B+']:.4f}).")
 
-            # Show B+ improvement rate separately if available
+            # Show B+ improvement rate separately if available.
+            # Exclude the currently-running experiment (its best is early/noisy)
+            # unless it represents a complete reset (>= 50 epochs recorded).
             bplus_exps = sorted(
                 [exp_n for exp_n in best_vals_by_entry
                  if _detect_chain(exp_dir, str(exp_n)) == "B+"],
             )
+            # Remove the running experiment if it has few epochs (noisy best)
+            if bplus_exps and running:
+                try:
+                    running_n = int(running)
+                    if running_n == bplus_exps[-1]:
+                        m = os.path.join(exp_dir, str(running_n), "metrics.jsonl")
+                        n_epochs = sum(1 for _ in open(m)) if os.path.exists(m) else 0
+                        if n_epochs < 50:
+                            bplus_exps = bplus_exps[:-1]  # drop early-running exp
+                except (ValueError, OSError):
+                    pass
             if len(bplus_exps) >= 2:
                 bplus_improvements = []
                 for i in range(1, len(bplus_exps)):
