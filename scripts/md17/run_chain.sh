@@ -23,6 +23,27 @@ if [[ $# -eq 0 ]]; then
   exit 1
 fi
 
+# Pre-flight: verify all job.sh files exist on cluster before starting
+SOCK="${HOME}/.config/submitter/sockets/trillium.sock"
+HOST="yqw@trillium-gpu.scinet.utoronto.ca"
+echo "Pre-flight check: verifying job.sh files on cluster ..."
+missing=0
+for n in "$@"; do
+  job_sh="${REMOTE_BASE}/${n}/job.sh"
+  if ! ssh -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes "${HOST}" \
+       "test -f '${job_sh}'" 2>/dev/null; then
+    echo "  MISSING: ${job_sh}" >&2
+    missing=1
+  else
+    echo "  OK: exp ${n}/job.sh"
+  fi
+done
+if [[ $missing -eq 1 ]]; then
+  echo "ERROR: some job.sh files are missing. Create them before running the chain." >&2
+  exit 1
+fi
+echo "All job.sh files found. Starting chain ..."
+
 for n in "$@"; do
   job_sh="${REMOTE_BASE}/${n}/job.sh"
   echo ""
