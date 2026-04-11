@@ -30,8 +30,9 @@
 - **Takeaway:** Another ~24% reduction (10.9→9.72). Ratio growing slightly (1.47→1.70) but acceptable.
 
 ## Exp 5 — Third optimizer reset from Exp 4 (RUNNING, job 426793)
-- **Config:** Load exp4/checkpoint.pt, fresh Adam LR=1e-5, StepLR(step_size=20, gamma=0.5).
-- **Expected:** val_force ≈ 7.0-7.5 after 80 epochs.
+- **Config:** Load exp4/checkpoint.pt, fresh Adam LR=1e-5, StepLR(step_size=20, gamma=0.5), best_checkpoint saving.
+- **Trend:** val_force 11.9(ep0)→9.00(ep17)→8.88(ep23, new best!). Already below exp4's best=9.53.
+- **Expected final:** val_force ≈ 7.0-7.5 after 80 epochs (20% per reset pattern).
 
 ## Exps 6–8 — Planned optimizer resets (jobs.sh ready on cluster)
 - **Exp 6:** init_from exp5/checkpoint.pt → expected val_force ~5.3-5.6
