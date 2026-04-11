@@ -2,13 +2,19 @@
 # Create the next optimizer-reset experiment from a previous experiment's checkpoint.
 # Copies run.py (preserving class definitions) and writes a ready-to-submit job.sh.
 #
-# Usage: bash scripts/md17/new_reset_exp.sh <prev_exp_n> [<new_exp_n>] [--use-run <exp_n>]
-#   prev_exp_n   — experiment to reset from (uses best_checkpoint.pt if present)
-#   new_exp_n    — new experiment number (default: prev_exp_n + 1)
-#   --use-run N  — copy run.py from exp N instead of prev_exp_n (avoids accidental
-#                  architecture drift — CRITICAL if the experiment chain diverged)
+# Usage: bash scripts/md17/new_reset_exp.sh <prev_exp_n> [<new_exp_n>] [options]
+#   prev_exp_n       — experiment to reset from (uses best_checkpoint.pt if present)
+#   new_exp_n        — new experiment number (default: prev_exp_n + 1)
+#   --use-run N      — copy run.py from exp N instead of prev_exp_n (avoids accidental
+#                      architecture drift — CRITICAL if the experiment chain diverged)
+#   --use-final-ckpt — use checkpoint.pt instead of best_checkpoint.pt as init_from.
+#                      Use this when best_checkpoint.pt may be corrupt (e.g. it was
+#                      written by a FAILED prior job that used a different architecture).
 #
-# Example: bash scripts/md17/new_reset_exp.sh 8 10 --use-run 8  # safe from chain drift
+# Examples:
+#   bash scripts/md17/new_reset_exp.sh 11 12           # exp12 from exp11/best
+#   bash scripts/md17/new_reset_exp.sh 11 12 --use-final-ckpt  # use exp11/checkpoint.pt
+#   bash scripts/md17/new_reset_exp.sh 9 12 --use-run 11  # exp12 from exp9 ckpt, exp11 arch
 
 set -euo pipefail
 
