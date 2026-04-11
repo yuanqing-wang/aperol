@@ -2,12 +2,13 @@
 # Create the next optimizer-reset experiment from a previous experiment's checkpoint.
 # Copies run.py (preserving class definitions) and writes a ready-to-submit job.sh.
 #
-# Usage: bash scripts/md17/new_reset_exp.sh <prev_exp_n> [<new_exp_n>]
-#   prev_exp_n  — experiment to reset from (uses best_checkpoint.pt if present)
-#   new_exp_n   — new experiment number (default: prev_exp_n + 1)
+# Usage: bash scripts/md17/new_reset_exp.sh <prev_exp_n> [<new_exp_n>] [--use-run <exp_n>]
+#   prev_exp_n   — experiment to reset from (uses best_checkpoint.pt if present)
+#   new_exp_n    — new experiment number (default: prev_exp_n + 1)
+#   --use-run N  — copy run.py from exp N instead of prev_exp_n (avoids accidental
+#                  architecture drift — CRITICAL if the experiment chain diverged)
 #
-# Example: bash scripts/md17/new_reset_exp.sh 6        # creates exp 7
-#          bash scripts/md17/new_reset_exp.sh 6 9      # creates exp 9 from exp 6
+# Example: bash scripts/md17/new_reset_exp.sh 8 10 --use-run 8  # safe from chain drift
 
 set -euo pipefail
 
@@ -16,12 +17,22 @@ HOST="yqw@trillium-gpu.scinet.utoronto.ca"
 REMOTE_BASE="/scratch/yqw/aperol/scripts/md17/experiments"
 
 if [[ $# -eq 0 ]]; then
-  echo "Usage: $0 <prev_exp_n> [<new_exp_n>]" >&2
+  echo "Usage: $0 <prev_exp_n> [<new_exp_n>] [--use-run <n>]" >&2
   exit 1
 fi
 
-PREV="$1"
-NEW="${2:-$((PREV + 1))}"
+PREV="$1"; shift
+NEW=""
+RUN_SOURCE=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --use-run) RUN_SOURCE="$2"; shift 2 ;;
+    *) NEW="$1"; shift ;;
+  esac
+done
+[[ -z "${NEW}" ]] && NEW=$(( PREV + 1 ))
+[[ -z "${RUN_SOURCE}" ]] && RUN_SOURCE="${PREV}"
 
 # Prefer best_checkpoint.pt over checkpoint.pt
 INIT_FROM="${REMOTE_BASE}/${PREV}/best_checkpoint.pt"
@@ -54,9 +65,12 @@ echo "Creating exp${NEW} (optimizer reset from exp${PREV})..."
 echo "  init_from: ${INIT_FROM}"
 
 # Create directory, copy run.py, update first docstring line
+# NOTE: run.py is copied from RUN_SOURCE (default=PREV), not always PREV.
+#       Use --use-run N to pick a specific architecture when chains diverge.
+echo "  run.py source: exp${RUN_SOURCE}"
 ssh -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes "${HOST}" "
   mkdir -p '${REMOTE_NEW}'
-  cp '${REMOTE_BASE}/${PREV}/run.py' '${REMOTE_NEW}/run.py'
+  cp '${REMOTE_BASE}/${RUN_SOURCE}/run.py' '${REMOTE_NEW}/run.py'
   sed -i '1s|^\"\"\".*$|\"\"\"Exp ${NEW} — Optimizer reset from exp${PREV} best_checkpoint.|' '${REMOTE_NEW}/run.py'
 "
 
