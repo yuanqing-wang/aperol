@@ -84,11 +84,17 @@ Chain A requires ~9% reduction per reset. Target <1.0 needs ~20 more resets. Ver
 - **Improvement rate:** ~2.6% improvement from exp12's 5.77 — significantly slower than earlier resets (8-9%).
 - **Takeaway:** Chain A has severe diminishing returns. Each reset gives less improvement as model reaches its generalization floor with n_tr=1000. Expected final: ~5.4-5.5.
 
-## **STRATEGIC PIVOT RECOMMENDED** (after exp 14 finishes)
-- Chain A requires ~50+ more resets at 2-3%/reset → impractical (~80 hours)
-- Chain B+ (exp 13) has ratio=1.63 (vs Chain A 3.18) → much less overfitting
-- Priority: Submit exp 15 (B+ from exp 13) to test B+ optimizer reset potential
-- If B+ improves >15% per reset, it will quickly catch up to chain A and may go lower
+## Exp 14 — Chain A reset from exp12 (DONE)
+- **Result:** val_force=5.62 (epoch 32, best), final=5.72 (epoch 199). TrainF=1.77. Ratio=3.18.
+- **Takeaway:** Only 2.6% improvement from exp12 (5.77→5.62). Severe diminishing returns.
+
+## Exp 16 — Chain A reset from exp14 (RUNNING, job 426943)
+- **Config:** Standard reset from exp14/best (5.62), no noise, 200 epochs.
+- **Expected:** ~5.47 (~2.5% improvement given recent rate)
+
+## Exp 15 — B+ reset from exp13 (staged, submit after exp16)
+- **Config:** Load exp13/best_checkpoint.pt (16.69), fresh LR=1e-5, 200 epochs.
+- **Priority:** Submit FIRST after exp16 finishes (strategic pivot to B+).
 
 ## Exp 15 — Chain B+ reset from exp13 (PREPARED)
 - **Config:** Load exp13/best_checkpoint.pt (16.69), fresh LR=1e-5, 200 epochs.
