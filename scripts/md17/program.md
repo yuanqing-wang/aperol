@@ -177,7 +177,7 @@ submitter fetch trillium <jobid>               # Copy job log files to current d
 submitter jobs trillium                        # Show recent jobs (last 24h)
 ```
 
-**Note on the `debug` partition:** Only one job can run at a time. Never submit a new job while one is already queued or running — always wait for the current job to finish first.
+**Note on the `debug` partition:** Only one job at a time (no pending jobs allowed — QOS limit). Always wait for the current job to complete before submitting the next. `submitter chain` does NOT work here (it would require a pending slot). Use `submitter poll` + `submit-remote` in a script, or submit manually.
 
 **Note on `conda run` in job.sh:** Use `conda run -n {env}` rather than `conda activate` — the latter requires an interactive shell and will silently fail in SLURM jobs.
 
