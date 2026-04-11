@@ -48,11 +48,29 @@
 ## Exp 8 — Planned (job.sh ready, 200 epochs)
 - **Config:** Load exp7/best_checkpoint.pt → expected val_force ~3.4-4.5
 
-## Exp 3 — Bold: sender+receiver broadcasts from scratch (DONE)
-- **Result:** BestVal=12.77 at epoch 70, FinalVal=12.88, Ratio=1.69. 80 epochs.
-- **vs Exp1:** 12.77 vs 14.2 → **10% better plateau**! Sender+receiver gives meaningfully lower val_force.
-- **Context:** The exp1 chain already reached 6.63 (exp8), far below exp3's plateau. But exp3 demonstrates sender+receiver is a better architecture — optimizer resets from exp3 would eventually converge lower than from exp1 at the same point.
-- **Takeaway:** Sender+receiver is a worthwhile architecture improvement. Future bold exp (chain starting from exp3) should be run after the current chain nears <1.0.
+## Chain A summary (no sender broadcast): Exp 1→2→4→5→6→7→8→10
+| Exp | From | BestVal | Reset# |
+|-----|------|---------|--------|
+| 1 | scratch | 14.2 | 0 |
+| 2 | exp1 | 10.8 | 1 |
+| 4 | exp2 | 9.5 | 2 |
+| 5 | exp4 | 8.6 | 3 |
+| 6 | exp5 | 8.0 | 4 |
+| 7 | exp6 | 7.28 | 5 |
+| 8 | exp7 | 6.63 | 6 |
+| 10* | exp8 | ~6.0 | 7 (chain A restart) |
+
+Chain A requires ~9% reduction per reset. Target <1.0 needs ~20 more resets. Very slow.
+
+## Chain B (sender+receiver): Exp 3→9→11→12... — PRIORITY CHAIN
+| Exp | From | BestVal | Reset# |
+|-----|------|---------|--------|
+| 3 | scratch | 12.77 | 0 |
+| 9 | exp3 | 6.22 | 1 — **51% reduction!** |
+| 11+ | exp9 | ~4.5-5.5 | 2 (next, queued) |
+
+Chain B achieves **51% reduction per reset** — MUCH faster than chain A's 9%.
+Automated chain B starting from exp11 (uses `run_auto_chain.sh 9 --use-run 9 --next 11`).
 
 ---
 
