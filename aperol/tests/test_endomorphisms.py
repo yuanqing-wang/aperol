@@ -66,3 +66,21 @@ def test_lazy_residual_linear_identity_init():
     # W=0 means x + x @ W = x + 0 = x
     torch.testing.assert_close(y, x, atol=1e-6, rtol=0,
                                 msg="LazyResidualLinear should start as identity (W=0)")
+
+
+def test_lazy_residual_linear_trainable():
+    """After one gradient step, LazyResidualLinear should produce non-identity output."""
+    torch.manual_seed(7)
+    layer = LazyResidualLinear()
+    optimizer = torch.optim.SGD(layer.parameters(), lr=1e-2)
+
+    x = torch.randn(4, 8)
+    # Forward + backward + step
+    loss = (layer(x) ** 2).sum()  # arbitrary loss
+    loss.backward()
+    optimizer.step()
+
+    # After training, W != 0, so output != x
+    y_after = layer(x).detach()
+    assert not torch.allclose(y_after, x, atol=1e-4), \
+        "After training, LazyResidualLinear should produce non-identity output"
