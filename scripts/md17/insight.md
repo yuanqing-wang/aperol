@@ -63,7 +63,8 @@
 4. **Layer-level residuals + SiLU** beat Tanh + no residuals.
 5. **Full-epoch train & val averaging + model.eval()** gives honest metrics.
 6. **Save scheduler state** in checkpoint — otherwise LR restarts cause energy spikes.
-7. **Optimizer reset pattern**: load plateau checkpoint, fresh Adam LR=1e-5, StepLR(step_size=20, gamma=0.5) — gives ~5-20% val_force improvement per reset.
+7. **Optimizer reset pattern**: load plateau checkpoint, fresh Adam LR=1e-5, StepLR(step_size=20, gamma=0.5) — gives ~5-20% val_force improvement per reset. Use `best_checkpoint.pt` (not `checkpoint.pt`) as `init_from` — starts from the best-seen model, not the potentially-worse final epoch.
+7b. **200-epoch resets (2h time limit) greatly outperform 80-epoch resets**: 200 epochs gives 10 full LR decay steps (1e-5→~1e-8), vs 4 steps for 80 epochs. Always prefer `--n_epoch 200 --time=2:00:00` for optimizer-reset experiments.
 8. **StepLR(20, 0.5)** for fine-tuning (vs step_size=10 for initial training from scratch).
 9. **weight_decay=1e-4** hurts — raised train error without improving val.
 10. **CosineAnnealingWarmRestarts from scratch** is unstable.
