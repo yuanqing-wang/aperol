@@ -107,10 +107,8 @@ This uses `submitter poll` + `submit-remote` to run experiments sequentially wit
 
 **Evaluate a single checkpoint** (val_force + calibrated energy error):
 ```bash
-submitter run-cmd trillium \
-    "APEROL_BASE=/scratch/yqw/aperol conda run -n aperol python3 \
-     /scratch/yqw/aperol/scripts/md17/eval_checkpoint.py \
-     experiments/15/best_checkpoint.pt"
+submitter run-script trillium --env aperol scripts/md17/eval_checkpoint.py \
+    experiments/15/best_checkpoint.pt
 ```
 Shows val_force_mse, raw val_energy_mse, and calibrated energy MSE (after linear OLS fit).
 
