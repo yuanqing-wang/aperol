@@ -134,6 +134,16 @@ def main():
     print(f"SWA ensemble: averaging exps {args.exp_nums}", flush=True)
     prefer_best = not args.prefer_final
 
+    # Warn if experiments span different chains (A/B/B+)
+    from summarize import _detect_chain
+    exp_dir = str(Path(REMOTE_BASE) / "scripts/md17/experiments")
+    chains = {n: _detect_chain(exp_dir, str(n)) for n in args.exp_nums}
+    unique_chains = set(chains.values())
+    if len(unique_chains) > 1:
+        print(f"  WARNING: mixing chains {unique_chains} — averaging across different architectures "
+              f"may give garbage. Continue with caution.", flush=True)
+        print(f"  Chain labels: {chains}", flush=True)
+
     # Load Model/Layer class definitions from the first experiment's run.py.
     # All experiments in the same chain share identical class structure.
     ref_exp = args.exp_nums[0]
