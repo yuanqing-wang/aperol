@@ -40,9 +40,8 @@ def main(exp_dir: str) -> None:
         last = lines[-1]
         tf = best["train_force_error"]
         ratio = best["val_force_error"] / tf if tf > 0 else float("nan")
-        running = "*" if last["epoch"] == lines[-1]["epoch"] and len(lines) < 90 else " "
         print(
-            f"{e:>4}{running} {best['val_force_error']:>8.4f}  {best['epoch']:>4d}  "
+            f"{e:>4}  {best['val_force_error']:>8.4f}  {best['epoch']:>4d}  "
             f"{tf:>7.4f}  {ratio:>6.2f}  "
             f"{last['val_force_error']:>9.4f}  {len(lines):>3d}"
         )
