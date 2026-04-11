@@ -65,7 +65,12 @@ EOF'
 
 For optimizer-reset experiments, add `--init_from /scratch/yqw/aperol/scripts/md17/experiments/{prev}/checkpoint.pt` and any extra args (e.g. `--learning_rate 1e-5`).
 
-**Submit the job** via SSH:
+**Submit the job** using submitter (preferred — handles cluster flags correctly):
+```bash
+~/Documents/GitHub/submitter/submitter submit-remote trillium \
+  /scratch/yqw/aperol/scripts/md17/experiments/{n}/job.sh
+```
+Or via raw SSH:
 ```bash
 ssh ... 'sbatch /scratch/yqw/aperol/scripts/md17/experiments/{n}/job.sh'
 ```
@@ -162,11 +167,13 @@ ssh -o ControlMaster=no \
 
 **Submitter commands:**
 ```bash
-submitter status                      # Check which clusters are connected
-submitter connect                     # Open master connections (interactive, MFA required)
-submitter watch trillium <jobid>      # Tail job stdout live (Ctrl+C to stop)
-submitter fetch trillium <jobid>      # Copy job log files to current directory
-submitter jobs trillium               # Show recent jobs (last 24h)
+submitter status                              # Check which clusters are connected
+submitter connect                             # Open master connections (interactive, MFA required)
+submitter submit-remote trillium <remote-path> # Submit a job script already on the cluster
+submitter cancel trillium <jobid>             # Cancel a running/pending job
+submitter watch trillium <jobid>              # Tail job stdout live (Ctrl+C to stop)
+submitter fetch trillium <jobid>              # Copy job log files to current directory
+submitter jobs trillium                       # Show recent jobs (last 24h)
 ```
 
 **Note on the `debug` partition:** Only one job can run at a time. Never submit a new job while one is already queued or running — always wait for the current job to finish first.
