@@ -90,15 +90,14 @@ Chain A requires ~9% reduction per reset. Target <1.0 needs ~20 more resets. Ver
 
 ## Exp 16 — Chain A reset from exp14 (RUNNING, job 426943)
 - **Config:** Standard reset from exp14/best (5.62), no noise, 200 epochs.
-- **Expected:** ~5.47 (~2.5% improvement given recent rate)
+- **Trend:** Best=5.49 at epoch 33. Final ~5.47-5.50 expected.
 
-## Exp 15 — B+ reset from exp13 (staged, submit after exp16)
-- **Config:** Load exp13/best_checkpoint.pt (16.69), fresh LR=1e-5, 200 epochs.
-- **Priority:** Submit FIRST after exp16 finishes (strategic pivot to B+).
-
-## Exp 15 — Chain B+ reset from exp13 (PREPARED)
+## Exp 15 — B+ reset from exp13 (STAGED — submit after exp16 finishes)
 - **Config:** Load exp13/best_checkpoint.pt (16.69), fresh LR=1e-5, 200 epochs.
 - **Expected:** ~10-14 (large improvement from fresh LR on near-converged B+ model)
+- **Submit:** `submitter submit-remote trillium /scratch/yqw/aperol/scripts/md17/experiments/15/job.sh`
+- **Then run B+ auto-chain:** `bash scripts/md17/run_auto_chain.sh 15 --next 17 --target 1.0 --max 20`
+  This auto-creates exps 17, 18, 19... (B+ chain) via optimizer resets until val_force < 1.0.
 
 ## SWA Ensemble (diagnostic)
 - **Tried:** Averaging weights from exps 8, 10, 11, 12 → val_force=5.92
