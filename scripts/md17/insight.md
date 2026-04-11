@@ -94,9 +94,13 @@ Chain A requires ~9% reduction per reset. Target <1.0 needs ~20 more resets. Ver
 
 ## Exp 15 — B+ first reset from exp13 (RUNNING, job 426958)
 - **Config:** Load exp13/best_checkpoint.pt (16.69), fresh LR=1e-5, 200 epochs.
-- **Epoch 1:** val_force=17.35 (expected — early oscillation with fresh optimizer).
-- **Expected:** ~10-14 at end (25-35% improvement from fresh LR + lower ratio)
-- **After exp15:** Run B+ auto-chain: `bash scripts/md17/run_auto_chain.sh 15 --next 17 --target 1.0 --max 20`
+- **Trend:** val_force 17.3(ep0)→15.6(ep12)→14.5(ep20)→13.22(ep105, best). Ratio=1.91.
+- **BREAKTHROUGH:** 20.8% improvement per reset (vs chain A's 2.1%)!
+  - B+ projected: 13.2→10.5→8.3→6.6→5.2→4.1→3.3→2.6→...→0.81 ✓
+  - ~12 resets from current best to reach <1.0 (~13h)!
+  - vs Chain A: 80+ resets (~89h) - B+ is **7× faster**!
+- **Takeaway:** Lower overfitting ratio (1.91 vs chain A 3.37) = bigger improvement per reset.
+- **After exp15:** Run B+ auto-chain: `bash scripts/md17/run_auto_chain.sh 15 --next 18 --target 1.0 --max 20`
 
 ## Exp 17 — Chain A or B+ (STAGED, exp17 dir prepared by user)
 - **Status:** ready to submit after exp15 finishes
