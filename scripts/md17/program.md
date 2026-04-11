@@ -200,6 +200,7 @@ submitter poll trillium <jobid>                       # Wait for job to finish; 
 submitter cancel trillium <jobid>                     # Cancel a running/pending job
 submitter watch trillium <jobid>                      # Tail job stdout live by job ID (Ctrl+C to stop)
 submitter tail-log trillium <remote-exp-dir>          # Tail most recent log in experiment dir (no job ID needed)
+submitter run-cmd trillium '<command>'                # Run any command on the cluster (no raw SSH needed)
 submitter fetch trillium <jobid>                      # Copy job log files to current directory
 submitter jobs trillium                               # Show recent jobs history (last 24h, via sacct)
 ```
