@@ -101,7 +101,7 @@ def main(exp_dir: str, running: str = "") -> None:
 
     # Summary footer: best overall and progress to target
     import math
-    all_vals = []
+    best_vals_by_entry = {}
     for e in entries:
         m = os.path.join(exp_dir, e, "metrics.jsonl")
         if not os.path.exists(m):
@@ -109,16 +109,34 @@ def main(exp_dir: str, running: str = "") -> None:
         lines = [json.loads(l) for l in open(m)]
         if lines:
             best = min(lines, key=lambda x: x["val_force_error"])
-            all_vals.append(best["val_force_error"])
-    if all_vals:
-        best_overall = min(all_vals)
+            best_vals_by_entry[int(e)] = best["val_force_error"]
+
+    if best_vals_by_entry:
+        best_overall = min(best_vals_by_entry.values())
         target = 1.0
-        avg_improvement = 0.091  # ~9.1% per optimizer reset (chain A average)
+
+        # Estimate improvement rate from consecutive chain A experiments (sorted by exp number)
+        sorted_exps = sorted(best_vals_by_entry.keys())
+        improvements = []
+        prev_val = None
+        prev_exp = None
+        for exp_n in sorted_exps:
+            v = best_vals_by_entry[exp_n]
+            if prev_val is not None and v < prev_val:
+                improvements.append((prev_val - v) / prev_val)
+            prev_val = v
+            prev_exp = exp_n
+        avg_improvement = sum(improvements) / len(improvements) if improvements else 0.091
+
         if best_overall > target:
             n = math.ceil(math.log(target / best_overall) / math.log(1 - avg_improvement))
+            pct = avg_improvement * 100
+            mins_per_reset = 67
+            total_hours = n * mins_per_reset // 60
+            total_mins = n * mins_per_reset % 60
             print(f"\nBest: {best_overall:.4f}  Target: <{target}  "
-                  f"Est. ~{n} optimizer resets at ~9%/reset  "
-                  f"(~{n*67//60}h {n*67%60}min at 200ep/67min each)")
+                  f"Est. ~{n} resets at {pct:.1f}%/reset  "
+                  f"(~{total_hours}h {total_mins}min at 200ep/{mins_per_reset}min each)")
 
 
 if __name__ == "__main__":
