@@ -25,18 +25,20 @@ MAX_NEW=30
 START_EXP=""
 USE_RUN=""
 NEXT_EXP=""
+USE_FINAL_CKPT=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --target)  TARGET="$2";   shift 2 ;;
-    --max)     MAX_NEW="$2";  shift 2 ;;
-    --use-run) USE_RUN="$2";  shift 2 ;;
-    --next)    NEXT_EXP="$2"; shift 2 ;;
-    *)         START_EXP="$1"; shift ;;
+    --target)         TARGET="$2";        shift 2 ;;
+    --max)            MAX_NEW="$2";       shift 2 ;;
+    --use-run)        USE_RUN="$2";       shift 2 ;;
+    --next)           NEXT_EXP="$2";      shift 2 ;;
+    --use-final-ckpt) USE_FINAL_CKPT=1;   shift   ;;
+    *)                START_EXP="$1";     shift   ;;
   esac
 done
 
-[[ -z "${START_EXP}" ]] && { echo "Usage: $0 <start_exp> [--target <val>] [--max <n>] [--use-run <arch_exp>] [--next <first_new_exp_n>]" >&2; exit 1; }
+[[ -z "${START_EXP}" ]] && { echo "Usage: $0 <start_exp> [--target <val>] [--max <n>] [--use-run <n>] [--next <n>] [--use-final-ckpt]" >&2; exit 1; }
 
 # Pre-flight: verify the start experiment has a checkpoint (must be finished)
 SOCK="${HOME}/.config/submitter/sockets/trillium.sock"
@@ -65,12 +67,11 @@ for ((i = 1; i <= MAX_NEW; i++)); do
   fi
   echo "=== Creating exp${NEW} (reset from exp${PREV}) ==="
 
-  # Create the new experiment (optionally pin to a specific run.py architecture)
-  if [[ -n "${USE_RUN}" ]]; then
-    bash "${NEW_RESET}" "${PREV}" "${NEW}" --use-run "${USE_RUN}"
-  else
-    bash "${NEW_RESET}" "${PREV}" "${NEW}"
-  fi
+  # Create the new experiment (optionally pin architecture or use final checkpoint)
+  RESET_ARGS=()
+  [[ -n "${USE_RUN}" ]]        && RESET_ARGS+=(--use-run "${USE_RUN}")
+  [[ -n "${USE_FINAL_CKPT}" ]] && RESET_ARGS+=(--use-final-ckpt)
+  bash "${NEW_RESET}" "${PREV}" "${NEW}" "${RESET_ARGS[@]}"
 
   echo ""
   echo "=== Submitting exp${NEW} ==="
