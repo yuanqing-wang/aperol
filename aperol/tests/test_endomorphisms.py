@@ -56,3 +56,13 @@ def test_endomorphism_batched(name, cls):
     x = torch.randn(2, 5, 8)  # batch of 2
     y = module(x)
     assert y.shape == x.shape, f"{name}: batched shape mismatch"
+
+
+def test_lazy_residual_linear_identity_init():
+    """LazyResidualLinear initialized with W=0 should output x (identity)."""
+    layer = LazyResidualLinear()
+    x = torch.randn(4, 8)
+    y = layer(x)
+    # W=0 means x + x @ W = x + 0 = x
+    torch.testing.assert_close(y, x, atol=1e-6, rtol=0,
+                                msg="LazyResidualLinear should start as identity (W=0)")
