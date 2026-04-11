@@ -120,7 +120,8 @@ bash scripts/md17/run_auto_chain.sh 10 --target 1.0 --max 20
 # With weight noise to break memorization (chain A with severe diminishing returns):
 bash scripts/md17/run_auto_chain.sh 16 --use-base --weight-noise 0.003 --target 1.0 --max 20
 # For B+ chain after exp15:
-bash scripts/md17/run_auto_chain.sh 15 --next 17 --target 1.0 --max 20
+bash scripts/md17/run_auto_chain.sh 15 --next 18 --target 1.0 --max 20
+# Note: use --next 18 to skip exp 16 (chain A, done) and exp 17 (chain A, staged)
 ```
 Creates each next experiment via `new_reset_exp.sh`, submits it, waits, checks val_force, and stops automatically when the target is reached. Run after the current experiment has a `best_checkpoint.pt`.
 
