@@ -8,29 +8,86 @@ All paths below are relative to `scripts/md17/` inside the repo. The repo root i
 
 ## Orientation (do this first, every session)
 
-1. List existing experiments by checking what numbered subdirectories exist under `scripts/md17/experiments/`.
-2. For each experiment, read `experiments/{n}/metrics.jsonl` (one JSON object per epoch: `epoch`, `train_energy_error`, `train_force_error`, `val_energy_error`, `val_force_error`) and `experiments/{n}/run.py`.
-3. Decide whether to continue training the best experiment, branch from it, or start fresh.
+1. Read `scripts/md17/insight.md` for a summary of what's been learned.
+2. List existing experiments on the cluster:
+   ```bash
+   ssh -o ControlMaster=no -o ControlPath=~/.config/submitter/sockets/trillium.sock \
+       -o BatchMode=yes yqw@trillium-gpu.scinet.utoronto.ca \
+       'ls /scratch/yqw/aperol/scripts/md17/experiments/ | sort -n'
+   ```
+3. For each experiment, read `experiments/{n}/metrics.jsonl` and `experiments/{n}/run.py` via SSH (see Cluster section).
+4. Check for any running jobs:
+   ```bash
+   ssh ... 'squeue -u yqw --noheader -o "%i %j %T %M"'
+   ```
+5. Decide whether to continue the best experiment, branch from it, or start fresh.
 
 ---
 
 ## Running experiments
 
-**Create a new experiment** by copying an existing script:
+**Create a new experiment directory** on the cluster:
 ```bash
-cp scripts/md17/experiments/{source}/run.py scripts/md17/experiments/{n}/run.py
-# or from the base template:
-cp scripts/md17/run.py scripts/md17/experiments/{n}/run.py
+ssh -o ControlMaster=no -o ControlPath=~/.config/submitter/sockets/trillium.sock \
+    -o BatchMode=yes yqw@trillium-gpu.scinet.utoronto.ca \
+    'mkdir -p /scratch/yqw/aperol/scripts/md17/experiments/{n}'
 ```
-Then edit `experiments/{n}/run.py` with your changes before running.
 
-**Run an experiment** by submitting a SLURM job (see the Cluster section). Choose `k` between 1 and 10. Use fewer epochs (1–2) to cheaply probe a new hypothesis; use more (up to 10) when a run looks promising. Training resumes from the checkpoint if it exists and appends to `metrics.jsonl` automatically.
+**Write the run.py** via SSH heredoc (substitute `{n}` before running):
+```bash
+ssh ... 'cat > /scratch/yqw/aperol/scripts/md17/experiments/{n}/run.py << '"'"'EOF'"'"'
+<script contents>
+EOF'
+```
+
+**Write the job.sh** via SSH heredoc (substitute `{n}`, `{k}` before running):
+```bash
+ssh ... 'cat > /scratch/yqw/aperol/scripts/md17/experiments/{n}/job.sh << '"'"'EOF'"'"'
+#!/bin/bash
+#SBATCH -J aperol_exp{n}
+#SBATCH --partition=debug
+#SBATCH --gpus-per-node=1
+#SBATCH --time=59:00
+#SBATCH -n 1
+#SBATCH -o /scratch/yqw/aperol/scripts/md17/experiments/{n}/job_%j.log
+#SBATCH -e /scratch/yqw/aperol/scripts/md17/experiments/{n}/job_%j.err
+
+set -euo pipefail
+export PYTHONPATH=/scratch/yqw/aperol
+export WANDB_MODE=offline
+export WANDB_DIR=/scratch/yqw/aperol/scripts/md17/wandb
+conda run -n aperol python -u /scratch/yqw/aperol/scripts/md17/experiments/{n}/run.py \
+  --n_epoch {k} \
+  --checkpoint /scratch/yqw/aperol/scripts/md17/experiments/{n}/checkpoint.pt
+echo APEROL_JOB_DONE
+EOF'
+```
+
+For optimizer-reset experiments, add `--init_from /scratch/yqw/aperol/scripts/md17/experiments/{prev}/checkpoint.pt` and any extra args (e.g. `--learning_rate 1e-5`).
+
+**Submit the job** via SSH:
+```bash
+ssh ... 'sbatch /scratch/yqw/aperol/scripts/md17/experiments/{n}/job.sh'
+```
+
+Choose `k` between 1 and 10. Use fewer epochs (1–2) to cheaply probe a new hypothesis; use more (up to 10) when a run looks promising. Training resumes from the checkpoint if it exists and appends to `metrics.jsonl` automatically.
 
 **Only one job may be submitted at a time** (debug partition constraint). Always wait for the current job to finish before submitting the next.
 
-**Read metrics** after each run:
+**Watch live output** while a job runs:
+```bash
+~/Documents/GitHub/submitter/submitter watch trillium {job_id}
 ```
-scripts/md17/experiments/{n}/metrics.jsonl
+
+**Read metrics** after each run via SSH:
+```bash
+ssh ... 'cat /scratch/yqw/aperol/scripts/md17/experiments/{n}/metrics.jsonl'
+```
+
+**Check job status**:
+```bash
+ssh ... 'squeue -j {job_id} --noheader -o "%T %M" 2>/dev/null || \
+  sacct -j {job_id} --noheader -o State --parsable2 2>/dev/null | head -1'
 ```
 
 ---
@@ -41,7 +98,7 @@ scripts/md17/experiments/{n}/metrics.jsonl
 - The `Model` class — depth, width, architecture.
 - Hyperparameters — learning rate, batch size, weight decay, feature dimensions, cutoff, loss weights, etc.
 - The `FeedForward` factory — swap in any `endomorphism` layers (`LazySquareLinear`, `LazyLayerNorm`, etc.) or activation functions.
-- Add entirely new architectures, as long as `check_model()` passes (it verifies rotational equivariance).
+- Add entirely new architectures, as long as `check_model()` passes (it verifies rotational equivariance). Call `model.eval()` before `check_model()` if the model has stochastic layers.
 
 **Do not** modify anything outside `experiments/{n}/run.py`. Do not change the data split.
 
@@ -53,7 +110,7 @@ scripts/md17/experiments/{n}/metrics.jsonl
 
 ## Insights log
 
-Keep a running record of learned experiences in `scripts/md17/insight.md`. After every experiment (or whenever you draw a meaningful conclusion), append an entry in this format:
+Keep a running record of learned experiences in `scripts/md17/insight.md` (local copy; also at `/scratch/yqw/aperol/scripts/md17/insight.md` on the cluster). After every experiment (or whenever you draw a meaningful conclusion), append an entry in this format:
 
 ```markdown
 ## Exp {n} — <one-line description>
@@ -68,58 +125,53 @@ Read `insight.md` at the start of each session (during Orientation) so prior fin
 
 ## Workflow (iterate indefinitely)
 
-After each `run_experiment`:
-1. **Preserve copies.** Immediately after a run completes, ensure these two files exist:
-   - `scripts/md17/experiments/{n}/run.py` — the exact script that was run
-   - `scripts/md17/experiments/{n}/metrics.jsonl` — the full epoch log
-   These are written directly to the work directory on the cluster.
-2. Read the updated `metrics.jsonl` and assess the trend.
-3. **Continue** the same experiment only if it is clearly still improving and hasn't plateaued.
+After each run completes:
+1. **Read metrics** via SSH. Assess the trend — is it still improving?
+2. **Append to insight.md** with the result and takeaway.
+3. **Continue** the same experiment (submit another job) only if it is clearly still improving and hasn't plateaued.
 4. **Branch** to a new experiment whenever you want to test a different design. Run experiments sequentially — never submit a new job until the current one has finished. Bias strongly toward exploration; vary architectures boldly across experiments.
 5. Abandon poorly-performing experiments quickly (a few epochs is enough to judge).
 6. Immediately loop back to step 1. **Never stop.**
 
 ---
 
-## Cluster (SLURM on Trillium/SciNet)
+## Cluster (SLURM on Trillium/SciNet via submitter)
 
-Running directly on the Trillium login node — no SSH needed. Set these env vars before using cluster commands:
+All cluster interaction goes through SSH master sockets managed by the `submitter` tool. The socket must already be open (run `submitter connect` interactively first if needed).
+
 ```
-ADONIS_CLUSTER_WORK_DIR=/scratch/yqw/aperol
-ADONIS_CLUSTER_CONDA_ENV=aperol
+Submitter:   ~/Documents/GitHub/submitter/submitter
+Config:      ~/Documents/GitHub/submitter/clusters.conf
+Sockets:     ~/.config/submitter/sockets/
+Cluster:     trillium  →  yqw@trillium-gpu.scinet.utoronto.ca
+Remote dir:  /scratch/yqw/aperol
+Conda env:   aperol
 ```
 
+**SSH shorthand** (reuse existing master socket, no MFA):
 ```bash
-# Write job.sh (substitute {n}, {k} before running)
-cat > ${ADONIS_CLUSTER_WORK_DIR}/scripts/md17/experiments/{n}/job.sh << 'EOF'
-#!/bin/bash
-#SBATCH -J aperol_exp{n}
-#SBATCH --partition=debug
-#SBATCH --gres=gpu:1
-#SBATCH --mem=16G
-#SBATCH --time=23:59:00
-#SBATCH -n 1
-#SBATCH -o /scratch/yqw/aperol/scripts/md17/experiments/{n}/job_%j.log
-#SBATCH -e /scratch/yqw/aperol/scripts/md17/experiments/{n}/job_%j.err
+ssh -o ControlMaster=no \
+    -o ControlPath=~/.config/submitter/sockets/trillium.sock \
+    -o BatchMode=yes \
+    yqw@trillium-gpu.scinet.utoronto.ca \
+    '<remote command>'
+```
 
-set -euo pipefail
-export PYTHONPATH=/scratch/yqw/aperol
-conda run -n aperol python -u /scratch/yqw/aperol/scripts/md17/experiments/{n}/run.py \
-  --n_epoch {k} \
-  --checkpoint /scratch/yqw/aperol/scripts/md17/experiments/{n}/checkpoint.pt
-echo APEROL_JOB_DONE
-EOF
-
-# Submit
-sbatch ${ADONIS_CLUSTER_WORK_DIR}/scripts/md17/experiments/{n}/job.sh
-
-# Check job status
-squeue -j {job_id} --noheader -o "%T" 2>/dev/null || \
-  sacct -j {job_id} --noheader -o State --parsable2 2>/dev/null | head -1
+**Submitter commands:**
+```bash
+submitter status                      # Check which clusters are connected
+submitter connect                     # Open master connections (interactive, MFA required)
+submitter watch trillium <jobid>      # Tail job stdout live (Ctrl+C to stop)
+submitter fetch trillium <jobid>      # Copy job log files to current directory
 ```
 
 **Note on the `debug` partition:** Only one job can run at a time. Never submit a new job while one is already queued or running — always wait for the current job to finish first.
 
 **Note on `conda run` in job.sh:** Use `conda run -n {env}` rather than `conda activate` — the latter requires an interactive shell and will silently fail in SLURM jobs.
 
----
+**Note on heredoc quoting over SSH:** To write multi-line scripts remotely, wrap the heredoc delimiter in single quotes so the local shell doesn't expand variables:
+```bash
+ssh ... 'cat > remote/path/file.py << '"'"'EOF'"'"'
+content with $variables preserved literally
+EOF'
+```
