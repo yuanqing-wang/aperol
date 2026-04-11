@@ -117,6 +117,38 @@ def test_projection_out_is_differentiable():
 # MD17Dataset normalization tests
 # ---------------------------------------------------------------------------
 
+def test_md17dataset_unnormalize_energy(tmp_path):
+    """unnormalize_energy(dataset.energy) should have the same mean/std as raw data."""
+    import numpy as np
+    import aperol.data.md17 as m17
+
+    n = 30
+    np.random.seed(7)
+    raw_mean, raw_std = 10.0, 5.0
+    raw_energies = (np.random.randn(n, 1) * raw_std + raw_mean).astype(np.float32)
+    data = {
+        "R": np.random.randn(n, 3, 3).astype(np.float32),
+        "E": raw_energies,
+        "F": np.random.randn(n, 3, 3).astype(np.float32),
+        "z": np.array([6, 8, 1], dtype=np.int64),
+    }
+    npz_path = tmp_path / "mol_dft.npz"
+    np.savez(str(npz_path), **data)
+
+    orig = m17._local_path
+    m17._local_path = lambda mol: str(npz_path)
+    try:
+        dataset = MD17Dataset("mol")
+        unnorm = dataset.unnormalize_energy(dataset.energy)
+        # After unnormalizing, the energies should match raw stats approximately
+        assert abs(unnorm.mean().item() - raw_mean) < 1.0, \
+            f"Unnormalized mean {unnorm.mean():.2f} should be close to raw {raw_mean:.2f}"
+        assert abs(unnorm.std().item() - raw_std) < 1.0, \
+            f"Unnormalized std {unnorm.std():.2f} should be close to raw {raw_std:.2f}"
+    finally:
+        m17._local_path = orig
+
+
 def test_md17dataset_energy_normalization(tmp_path):
     """Synthetic dataset: after normalization, energy should have mean≈0, std≈1."""
     import numpy as np
