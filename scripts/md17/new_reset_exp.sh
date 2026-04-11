@@ -12,10 +12,12 @@
 #                      written by a FAILED prior job that used a different architecture).
 #
 # Examples:
-#   bash scripts/md17/new_reset_exp.sh 11 12           # exp12 from exp11/best
-#   bash scripts/md17/new_reset_exp.sh 11 12 --use-final-ckpt  # use exp11/checkpoint.pt
-#   bash scripts/md17/new_reset_exp.sh 9 12 --use-run 11  # exp12 from exp9 ckpt, exp11 arch
-#   bash scripts/md17/new_reset_exp.sh 16 17 --use-base  # use base run.py (has --weight_noise_std etc.)
+#   bash scripts/md17/new_reset_exp.sh 11 12                          # exp12 from exp11/best
+#   bash scripts/md17/new_reset_exp.sh 11 12 --use-final-ckpt         # use exp11/checkpoint.pt
+#   bash scripts/md17/new_reset_exp.sh 9 12 --use-run 11              # exp12 from exp9 ckpt, exp11 arch
+#   bash scripts/md17/new_reset_exp.sh 16 17 --use-base               # use base run.py template
+#   bash scripts/md17/new_reset_exp.sh 16 17 --use-base --weight-noise 0.003  # + weight noise
+#   bash scripts/md17/new_reset_exp.sh 16 17 --use-base --adamw       # + AdamW optimizer
 
 set -euo pipefail
 
