@@ -11,13 +11,20 @@
 #                      Use this when best_checkpoint.pt may be corrupt (e.g. it was
 #                      written by a FAILED prior job that used a different architecture).
 #
+# Options:
+#   --use-run N      — copy run.py from exp N (prevent architecture drift in split chains)
+#   --use-base       — copy from scripts/md17/run.py (has --weight_noise_std, --adamw etc.)
+#   --use-final-ckpt — use checkpoint.pt instead of best_checkpoint.pt (if best is corrupt)
+#   --weight-noise N — inject weight noise at reset (breaks memorization; try 0.001-0.01)
+#   --adamw          — use AdamW optimizer (decoupled weight decay)
+#   --plateau        — use ReduceLROnPlateau instead of StepLR
+#   --n-epochs N     — epochs per run (default: 200)
+#   --dry-run/-n     — show what would be done without touching the cluster
+#
 # Examples:
-#   bash scripts/md17/new_reset_exp.sh 11 12                          # exp12 from exp11/best
-#   bash scripts/md17/new_reset_exp.sh 11 12 --use-final-ckpt         # use exp11/checkpoint.pt
-#   bash scripts/md17/new_reset_exp.sh 9 12 --use-run 11              # exp12 from exp9 ckpt, exp11 arch
-#   bash scripts/md17/new_reset_exp.sh 16 17 --use-base               # use base run.py template
-#   bash scripts/md17/new_reset_exp.sh 16 17 --use-base --weight-noise 0.003  # + weight noise
-#   bash scripts/md17/new_reset_exp.sh 16 17 --use-base --adamw       # + AdamW optimizer
+#   bash scripts/md17/new_reset_exp.sh 18 19                 # exp19 from exp18/best
+#   bash scripts/md17/new_reset_exp.sh 18 19 --dry-run       # preview without creating
+#   bash scripts/md17/new_reset_exp.sh 18 19 --n-epochs 100  # shorter run
 
 set -euo pipefail
 
