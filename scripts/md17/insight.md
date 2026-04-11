@@ -48,11 +48,11 @@
 ## Exp 8 — Planned (job.sh ready, 200 epochs)
 - **Config:** Load exp7/best_checkpoint.pt → expected val_force ~3.4-4.5
 
-## Exp 3 — Bold: sender+receiver broadcasts from scratch (RUNNING)
-- **Config:** Same as exp1 but Layer adds `NodeToEdgeSenderBroadcast` alongside `NodeToEdgeBroadcast`. Fresh start (can't share checkpoints with exp1 chain).
-- **Hypothesis:** Full per-layer sender+receiver edge messages enable richer directed message passing.
-- **Early result (ep28):** BestVal=22.0, Ratio=1.10. Exp1 had ~28 at same epoch → **21% better + much less overfitting**!
-- **Status:** Running, 80 epochs total (59min limit), job 426827.
+## Exp 3 — Bold: sender+receiver broadcasts from scratch (DONE)
+- **Result:** BestVal=12.77 at epoch 70, FinalVal=12.88, Ratio=1.69. 80 epochs.
+- **vs Exp1:** 12.77 vs 14.2 → **10% better plateau**! Sender+receiver gives meaningfully lower val_force.
+- **Context:** The exp1 chain already reached 6.63 (exp8), far below exp3's plateau. But exp3 demonstrates sender+receiver is a better architecture — optimizer resets from exp3 would eventually converge lower than from exp1 at the same point.
+- **Takeaway:** Sender+receiver is a worthwhile architecture improvement. Future bold exp (chain starting from exp3) should be run after the current chain nears <1.0.
 
 ---
 
