@@ -34,6 +34,17 @@ done
 
 [[ -z "${START_EXP}" ]] && { echo "Usage: $0 <start_exp> [--target <val>] [--max <n>]" >&2; exit 1; }
 
+# Pre-flight: verify the start experiment has a checkpoint (must be finished)
+SOCK="${HOME}/.config/submitter/sockets/trillium.sock"
+HOST="yqw@trillium-gpu.scinet.utoronto.ca"
+START_CKPT="${REMOTE_BASE}/${START_EXP}/best_checkpoint.pt"
+START_CKPT_ALT="${REMOTE_BASE}/${START_EXP}/checkpoint.pt"
+if ! ssh -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes "${HOST}" \
+    "test -f '${START_CKPT}' || test -f '${START_CKPT_ALT}'" 2>/dev/null; then
+  echo "ERROR: exp${START_EXP} has no checkpoint. Make sure it has completed before running auto-chain." >&2
+  exit 1
+fi
+
 echo "Auto-chain: start=exp${START_EXP}, target val_force < ${TARGET}, max ${MAX_NEW} new experiments"
 echo ""
 
