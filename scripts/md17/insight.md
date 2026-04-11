@@ -23,9 +23,20 @@
 - **Trend:** val_force 16.2(ep0)→12.2(ep20)→11.04(ep40)→10.81(ep60)→10.91(ep79). Plateau at ~10.8.
 - **Takeaway:** Optimizer reset from exp1 gives 24% improvement (14.2→10.9). Ratio stayed ~1.5 (not growing). Good generalization with n_tr=1000.
 
-## Exp 4 — Second optimizer reset from Exp 2 (RUNNING, job 426790)
-- **Config:** Load exp2/checkpoint.pt, fresh Adam LR=1e-5, StepLR(step_size=20, gamma=0.5).
-- **Expected:** val_force ≈ 7-9 after 80 epochs.
+## Exp 4 — Second optimizer reset from Exp 2
+- **Result:** val_force=9.72 (epoch 79), train_force=5.70. Ratio=1.70.
+- **Best:** val_force=9.53 at epoch 57.
+- **Trend:** 11.9(ep0)→9.53(ep57, best)→9.72(ep79). Plateau ~9.5-9.8.
+- **Takeaway:** Another ~24% reduction (10.9→9.72). Ratio growing slightly (1.47→1.70) but acceptable.
+
+## Exp 5 — Third optimizer reset from Exp 4 (RUNNING, job 426793)
+- **Config:** Load exp4/checkpoint.pt, fresh Adam LR=1e-5, StepLR(step_size=20, gamma=0.5).
+- **Expected:** val_force ≈ 7.0-7.5 after 80 epochs.
+
+## Exps 6–8 — Planned optimizer resets (jobs.sh ready on cluster)
+- **Exp 6:** init_from exp5/checkpoint.pt → expected val_force ~5.3-5.6
+- **Exp 7:** init_from exp6/checkpoint.pt → expected val_force ~4.0-4.5
+- **Exp 8:** init_from exp7/checkpoint.pt → expected val_force ~3.0-3.6
 
 ## Exp 3 — Bold: sender+receiver broadcasts from scratch (queued)
 - **Config:** Same as exp1 but Layer adds `NodeToEdgeSenderBroadcast` alongside `NodeToEdgeBroadcast` in each layer. Fresh start (can't share checkpoints with exp1 chain).
