@@ -99,6 +99,27 @@ def main(exp_dir: str, running: str = "") -> None:
             f"{last['val_force_error']:>9.4f}  {len(lines):>3d}{running_note}"
         )
 
+    # Summary footer: best overall and progress to target
+    import math
+    all_vals = []
+    for e in entries:
+        m = os.path.join(exp_dir, e, "metrics.jsonl")
+        if not os.path.exists(m):
+            continue
+        lines = [json.loads(l) for l in open(m)]
+        if lines:
+            best = min(lines, key=lambda x: x["val_force_error"])
+            all_vals.append(best["val_force_error"])
+    if all_vals:
+        best_overall = min(all_vals)
+        target = 1.0
+        avg_improvement = 0.091  # ~9.1% per optimizer reset (chain A average)
+        if best_overall > target:
+            n = math.ceil(math.log(target / best_overall) / math.log(1 - avg_improvement))
+            print(f"\nBest: {best_overall:.4f}  Target: <{target}  "
+                  f"Est. ~{n} optimizer resets at ~9%/reset  "
+                  f"(~{n*67//60}h {n*67%60}min at 200ep/67min each)")
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
