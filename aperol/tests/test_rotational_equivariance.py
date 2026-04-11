@@ -137,17 +137,21 @@ def test_check_model_restores_training_mode():
 
 def test_check_layer_restores_training_mode():
     """check_layer should restore the layer's original training mode."""
+    # Use a fixed state so lazy parameters are initialized consistently across calls
+    torch.manual_seed(99)
+    fixed_state = get_random_state()
+
     layer = NodeToEdgeBroadcast(get_simple_endomorphism())
 
     # Start in train mode — check_layer should put it back
     layer.train()
     assert layer.training
-    check_layer(layer)
+    check_layer(layer, state=fixed_state)
     assert layer.training, "check_layer should restore train mode"
 
     # Start in eval mode — check_layer should keep it
     layer.eval()
     assert not layer.training
-    check_layer(layer)
+    check_layer(layer, state=fixed_state)
     assert not layer.training, "check_layer should preserve eval mode"
 
