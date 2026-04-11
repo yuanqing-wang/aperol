@@ -115,6 +115,23 @@ def main():
     print(f"  val_energy_mse     = {results['val_energy_mse']:.4f}  (raw, includes constant offset)")
     print(f"  val_energy_cal_mse = {results['val_energy_cal_mse']:.4f}  (after linear calibration)")
     print(f"  calibration: E_true ≈ {results['cal_a']:.3f} * E_pred + {results['cal_b']:.3f}")
+
+    # Cross-reference with metrics.jsonl to show overfitting ratio if available
+    metrics_path = ckpt_path.parent / "metrics.jsonl"
+    if metrics_path.exists():
+        try:
+            lines = [json.loads(l) for l in metrics_path.open()]
+            if lines:
+                # Find the entry closest in val_force to our evaluation
+                best_m = min(lines, key=lambda x: abs(x["val_force_error"] - results["val_force_mse"]))
+                tf = best_m.get("train_force_error")
+                vf = best_m.get("val_force_error")
+                ep = best_m.get("epoch")
+                if tf and tf > 0:
+                    print(f"\n  From metrics.jsonl (epoch {ep}): train_force={tf:.4f}, val_force={vf:.4f}, ratio={vf/tf:.2f}")
+        except Exception:
+            pass
+
     print(json.dumps(results))
 
 
