@@ -48,10 +48,11 @@
 ## Exp 8 — Planned (job.sh ready, 200 epochs)
 - **Config:** Load exp7/best_checkpoint.pt → expected val_force ~3.4-4.5
 
-## Exp 3 — Bold: sender+receiver broadcasts from scratch (queued)
-- **Config:** Same as exp1 but Layer adds `NodeToEdgeSenderBroadcast` alongside `NodeToEdgeBroadcast` in each layer. Fresh start (can't share checkpoints with exp1 chain).
-- **Hypothesis:** Full per-layer sender+receiver edge messages enable richer directed message passing vs receiver-only (exp1).
-- **Status:** Prepared, job.sh ready. Submit after exp 4 finishes.
+## Exp 3 — Bold: sender+receiver broadcasts from scratch (RUNNING)
+- **Config:** Same as exp1 but Layer adds `NodeToEdgeSenderBroadcast` alongside `NodeToEdgeBroadcast`. Fresh start (can't share checkpoints with exp1 chain).
+- **Hypothesis:** Full per-layer sender+receiver edge messages enable richer directed message passing.
+- **Early result (ep28):** BestVal=22.0, Ratio=1.10. Exp1 had ~28 at same epoch → **21% better + much less overfitting**!
+- **Status:** Running, 80 epochs total (59min limit), job 426827.
 
 ---
 
