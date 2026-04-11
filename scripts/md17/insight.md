@@ -65,15 +65,16 @@
 
 Chain A requires ~9% reduction per reset. Target <1.0 needs ~20 more resets. Very slow.
 
-## Chain B (sender+receiver): Exp 3→9→11→12... — PRIORITY CHAIN
+## Chain B (sender+receiver): Exp 3 only — NOT yet continued
 | Exp | From | BestVal | Reset# |
 |-----|------|---------|--------|
 | 3 | scratch | 12.77 | 0 |
-| 9 | exp3 | 6.22 | 1 — **51% reduction!** |
-| 11+ | exp9 | ~4.5-5.5 | 2 (next, queued) |
 
-Chain B achieves **51% reduction per reset** — MUCH faster than chain A's 9%.
-Automated chain B starting from exp11 (uses `run_auto_chain.sh 9 --use-run 9 --next 11`).
+**NOTE (CORRECTION):** Exp 9 was **not** chain B. Job 426833 log shows it loaded from
+`exp8/best_checkpoint.pt` (chain A). Exp9 achieved 6.22 as a chain A reset from exp8 (6.63→6.22 = 6.2%). The "51% improvement" was an error — it compared to exp3 (12.77), not the actual init point.
+
+True chain B (reset from exp3/best_checkpoint.pt with sender architecture) has NOT been run yet.
+Chain A is currently winning: exp11 best = 5.85, exp9 = 6.22, exp3 = 12.77.
 
 ---
 
