@@ -115,15 +115,16 @@ def check_model(
     # Force equivariance check: F(R·x) = R·F(x)
     # Forces are -grad(energy, position); equivariance follows from energy
     # invariance but checking it explicitly catches gradient-path bugs.
-    pos = sample.position.detach().requires_grad_(True)
-    pos_r = sample_r.position.detach().requires_grad_(True)
-    s = MD17Sample(position=pos, energy=sample.energy, force=sample.force, atom_type=sample.atom_type)
-    s_r = MD17Sample(position=pos_r, energy=sample_r.energy, force=sample_r.force, atom_type=sample_r.atom_type)
-    e = model(s)
-    e_r = model(s_r)
-    force = -torch.autograd.grad(e.sum(), pos, create_graph=False)[0]      # (N, 3)
-    force_r = -torch.autograd.grad(e_r.sum(), pos_r, create_graph=False)[0]  # (N, 3)
-    # Rotate the reference forces by r and compare to force_r.
+    # Use enable_grad so this works even when called inside no_grad contexts.
+    with torch.enable_grad():
+        pos = sample.position.detach().requires_grad_(True)
+        pos_r = sample_r.position.detach().requires_grad_(True)
+        s = MD17Sample(position=pos, energy=sample.energy, force=sample.force, atom_type=sample.atom_type)
+        s_r = MD17Sample(position=pos_r, energy=sample_r.energy, force=sample_r.force, atom_type=sample_r.atom_type)
+        e = model(s)
+        e_r = model(s_r)
+        force = -torch.autograd.grad(e.sum(), pos, create_graph=False)[0]      # (N, 3)
+        force_r = -torch.autograd.grad(e_r.sum(), pos_r, create_graph=False)[0]  # (N, 3)
     # Positions rotate as x_r = x @ r.T; forces inherit the same transformation.
     _assert_allclose(force_r, force @ r.T, name=f"{name}.force", atol=atol, rtol=rtol)
 
