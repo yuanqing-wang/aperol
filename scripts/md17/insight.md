@@ -74,11 +74,22 @@ Chain A requires ~9% reduction per reset. Target <1.0 needs ~20 more resets. Ver
 `exp8/best_checkpoint.pt` (chain A). True chain B has NOT been run yet.
 
 ## Exp 13 — Bold B+ (sender+receiver + EdgeToPos/Vel + AngleToEdgeMultiChannel), fresh start
-- **Status:** Running (epoch ~142/200). BestVal=16.7 at ep125. Train=10.3. Ratio=1.62.
-- **Trend:** ep30:31.7→ep44:22.9→ep125:16.7. Still converging.
-- **vs exp3 (sender only):** exp3 reached 12.8 in 80 epochs. B+ is slower (~16.7 at ep125 vs exp3's 12.8 at ep70).
-- **vs exp1 (base):** exp1 reached 14.2 in 90 epochs. B+ is approaching similar territory.
-- **Takeaway:** More complex architecture (B+) doesn't necessarily converge faster. Will need optimizer resets to see full potential.
+- **Result:** val_force=16.69 (ep156, best), final=16.69 (ep199). Train=10.25. Ratio=1.63. 200 epochs.
+- **vs chain A exp1:** exp1 reached 14.2 in 90 epochs. B+ reached 16.7 in 200 epochs (worse start).
+- **Takeaway:** More complex architecture starts WORSE than chain A baseline. BUT ratio=1.63 (much lower than chain A's 2.52+), suggesting better generalization potential. Will need optimizer resets to see full potential.
+
+## Exp 14 — Chain A reset from exp12 (RUNNING, job 426928)
+- **Config:** Load exp12/best_checkpoint.pt (5.77), fresh LR=1e-5, 200 epochs.
+- **Expected:** ~5.2-5.4 (~9% improvement)
+
+## Exp 15 — Chain B+ reset from exp13 (PREPARED)
+- **Config:** Load exp13/best_checkpoint.pt (16.69), fresh LR=1e-5, 200 epochs.
+- **Expected:** ~10-14 (large improvement from fresh LR on near-converged B+ model)
+
+## SWA Ensemble (diagnostic)
+- **Tried:** Averaging weights from exps 8, 10, 11, 12 → val_force=5.92
+- **vs best individual (exp 12):** 5.92 > 5.77 → **WORSE**
+- **Takeaway:** Chain A checkpoints are in different loss basins; weight averaging doesn't find a better consensus point. Sequential optimizer resets outperform SWA for this setting.
 
 ---
 
