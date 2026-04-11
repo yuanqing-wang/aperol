@@ -11,11 +11,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PY="${SCRIPT_DIR}/summarize.py"
 
 WATCH=0
+NO_CLEAR=0
+INTERVAL=30
 EXP_DIR=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --watch|-w) WATCH=1; shift ;;
+    --watch|-w)      WATCH=1; shift ;;
+    --no-clear)      NO_CLEAR=1; shift ;;
+    --interval|-i)   INTERVAL="$2"; shift 2 ;;
     *) EXP_DIR="$1"; shift ;;
   esac
 done
@@ -59,10 +63,10 @@ run_once() {
 
 if [[ "${WATCH}" == "1" ]]; then
   while true; do
-    clear
-    echo "=== $(date '+%H:%M:%S') === (Ctrl+C to stop)"
+    [[ "${NO_CLEAR}" == "0" ]] && clear
+    echo "=== $(date '+%H:%M:%S') === (Ctrl+C to stop, interval: ${INTERVAL}s)"
     run_once || true
-    sleep 30
+    sleep "${INTERVAL}"
   done
 else
   run_once
