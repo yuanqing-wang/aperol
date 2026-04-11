@@ -106,12 +106,26 @@ def check_model(
         sample = get_random_sample()
     sample_r = rotate_sample(sample, r)
 
+    # Energy invariance check
     with torch.no_grad():
         energy = model(sample)
         energy_r = model(sample_r)
-
-    # Energy is a scalar — must be rotation-invariant.
     _assert_allclose(energy, energy_r, name=f"{name}.energy", atol=atol, rtol=rtol)
+
+    # Force equivariance check: F(R·x) = R·F(x)
+    # Forces are -grad(energy, position); equivariance follows from energy
+    # invariance but checking it explicitly catches gradient-path bugs.
+    pos = sample.position.detach().requires_grad_(True)
+    pos_r = sample_r.position.detach().requires_grad_(True)
+    s = MD17Sample(position=pos, energy=sample.energy, force=sample.force, atom_type=sample.atom_type)
+    s_r = MD17Sample(position=pos_r, energy=sample_r.energy, force=sample_r.force, atom_type=sample_r.atom_type)
+    e = model(s)
+    e_r = model(s_r)
+    force = -torch.autograd.grad(e.sum(), pos, create_graph=False)[0]      # (N, 3)
+    force_r = -torch.autograd.grad(e_r.sum(), pos_r, create_graph=False)[0]  # (N, 3)
+    # Rotate the reference forces by r and compare to force_r.
+    # Positions rotate as x_r = x @ r.T; forces inherit the same transformation.
+    _assert_allclose(force_r, force @ r.T, name=f"{name}.force", atol=atol, rtol=rtol)
 
 
 def check_layer(
