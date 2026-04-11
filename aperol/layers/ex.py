@@ -35,12 +35,12 @@ class EdgeToPositionAggregation(Module):
         torch.nn.init.xavier_uniform_(self.weight)
 
     def forward(self, state: State) -> State:
-        # delta[i, j, 3, Dx] = position[i] - position[j]
+        # delta[..., i, j, 3, Dx] = position[i] - position[j]
         delta = state.position.unsqueeze(-3) - state.position.unsqueeze(-4)  # (..., N, N, 3, Dx)
-        # w[i, j, Dx] — invariant weights from edge features
+        # w[..., i, j, Dx] — invariant weights from edge features
         w = self.endomorphism(state.edge @ self.weight)  # (..., N, N, Dx)
-        # weighted displacement, aggregated over sources j
-        update = (delta * w.unsqueeze(-2)).mean(dim=-4)   # (..., N, 3, Dx)
+        # weighted displacement, aggregated over sources j (dim=-3 in 4D delta)
+        update = (delta * w.unsqueeze(-2)).mean(dim=-3)   # (..., N, 3, Dx)
         return state.replace(position=state.position + update)
 
 
@@ -73,7 +73,9 @@ class EdgeToVelocityAggregation(Module):
         torch.nn.init.xavier_uniform_(self.weight)
 
     def forward(self, state: State) -> State:
+        # delta[..., i, j, 3, Dv] = velocity[i] - velocity[j]
         delta = state.velocity.unsqueeze(-3) - state.velocity.unsqueeze(-4)  # (..., N, N, 3, Dv)
         w = self.endomorphism(state.edge @ self.weight)  # (..., N, N, Dv)
-        update = (delta * w.unsqueeze(-2)).mean(dim=-4)   # (..., N, 3, Dv)
+        # aggregate over sources j (dim=-3 in 4D delta)
+        update = (delta * w.unsqueeze(-2)).mean(dim=-3)   # (..., N, 3, Dv)
         return state.replace(velocity=state.velocity + update)
