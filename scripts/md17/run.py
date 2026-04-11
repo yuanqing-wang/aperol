@@ -321,6 +321,11 @@ def run(args):
             scheduler = torch.optim.lr_scheduler.StepLR(
                 optimizer, step_size=args.scheduler_step, gamma=args.scheduler_gamma
             )
+        if args.weight_noise_std > 0:
+            with torch.no_grad():
+                for param in model.parameters():
+                    param.add_(args.weight_noise_std * torch.randn_like(param))
+            print(f"  + added weight noise (std={args.weight_noise_std:.2e}) to break memorization", flush=True)
         print(f"Loaded model from {args.init_from}, fresh {args.optimizer} LR={args.learning_rate}", flush=True)
 
     if wandb_run_id:
@@ -446,6 +451,9 @@ if __name__ == "__main__":
     parser.add_argument("--depth", type=int, default=5)
     parser.add_argument("--energy_weight", type=float, default=0.01)
     parser.add_argument("--force_weight", type=float, default=0.99)
+    parser.add_argument("--weight_noise_std", type=float, default=0.0,
+                        help="Std of Gaussian noise added to all weights at optimizer reset. "
+                             "Breaks exact memorization; try 0.001-0.01 for chain A.")
     parser.add_argument("--optimizer", type=str, default="adam",
                         choices=["adam", "adamw"],
                         help="Optimizer: 'adam' (default) or 'adamw' (decoupled weight decay)")
