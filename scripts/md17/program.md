@@ -117,6 +117,17 @@ bash scripts/md17/summarize.sh          # one-shot
 bash scripts/md17/summarize.sh --watch  # refresh every 30s (Ctrl+C to stop)
 ```
 
+**Evaluate a single checkpoint** (quick, no training):
+```bash
+submitter run-cmd trillium 'python3 /scratch/yqw/aperol/scripts/md17/eval_checkpoint.py \
+  /scratch/yqw/aperol/scripts/md17/experiments/{n}/best_checkpoint.pt'
+```
+
+**Average multiple checkpoints** (SWA ensemble diagnostic):
+```bash
+submitter run-cmd trillium 'python3 /scratch/yqw/aperol/scripts/md17/swa_ensemble.py 8 10 11 12'
+```
+
 **Read metrics** after each run via SSH:
 ```bash
 ssh ... 'cat /scratch/yqw/aperol/scripts/md17/experiments/{n}/metrics.jsonl'
