@@ -1,9 +1,11 @@
 #!/bin/bash
 # Show a summary table of all experiment results.
-# Usage: bash scripts/md17/summarize.sh [--watch] [experiment_dir]
-# Default: reads from /scratch/yqw/aperol/scripts/md17/experiments/ on trillium via SSH.
-# Or: bash scripts/md17/summarize.sh ./experiments  (local directory)
-# --watch: refresh every 30 seconds (Ctrl+C to stop)
+# Usage: bash scripts/md17/summarize.sh [options] [experiment_dir]
+#   --watch/-w         Refresh continuously (Ctrl+C to stop)
+#   --interval/-i N    Refresh interval in seconds (default: 30)
+#   --no-clear         Don't clear terminal on each refresh (preserves scrollback)
+# Default: reads from /scratch/yqw/aperol on trillium via submitter.
+# With [experiment_dir]: run locally against that directory.
 
 set -euo pipefail
 
