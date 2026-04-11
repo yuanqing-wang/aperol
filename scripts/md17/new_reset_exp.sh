@@ -39,8 +39,15 @@ if ssh -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes "${HOST}" \
     "test -f '${REMOTE_NEW}/checkpoint.pt'" 2>/dev/null; then
   echo "WARNING: ${REMOTE_NEW}/checkpoint.pt already exists." >&2
   echo "  This experiment may already be running or completed." >&2
-  read -r -p "  Overwrite? [y/N] " confirm
-  [[ "${confirm}" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 1; }
+  if [[ -t 0 ]]; then
+    # Interactive terminal: ask for confirmation
+    read -r -p "  Overwrite? [y/N] " confirm
+    [[ "${confirm}" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 1; }
+  else
+    # Non-interactive (e.g. called from run_chain.sh): abort to be safe
+    echo "  Non-interactive mode — aborting to avoid overwrite. Remove checkpoint first." >&2
+    exit 1
+  fi
 fi
 
 echo "Creating exp${NEW} (optimizer reset from exp${PREV})..."
