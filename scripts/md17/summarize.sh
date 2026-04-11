@@ -24,12 +24,20 @@ if [[ -z "${EXP_DIR}" ]]; then
     exit 1
   fi
 
-  # Upload the Python script and run it remotely
+  # Detect the currently-running aperol experiment from squeue
+  RUNNING_EXP=""
+  running_raw=$(ssh -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes "${HOST}" \
+    "squeue -u yqw --noheader -o '%j' 2>/dev/null | grep '^aperol_exp' | head -1" 2>/dev/null || true)
+  if [[ "${running_raw}" =~ ^aperol_exp([0-9]+)$ ]]; then
+    RUNNING_EXP="${BASH_REMATCH[1]}"
+  fi
+
+  # Upload the Python script and run it remotely, passing the running experiment number
   scp -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes \
     "${PY}" "${HOST}:${REMOTE_PY}" 2>/dev/null
 
   ssh -o ControlMaster=no -o "ControlPath=${SOCK}" -o BatchMode=yes "${HOST}" \
-    "python3 '${REMOTE_PY}' '${REMOTE_EXP}'"
+    "python3 '${REMOTE_PY}' '${REMOTE_EXP}' '${RUNNING_EXP}'"
 
 else
   python3 "${PY}" "${EXP_DIR}"
