@@ -23,14 +23,17 @@ def _make_sample(n_atoms=5, n_species=4):
     )
 
 
-def test_md17sample_cuda_alias():
-    """cuda() should be an alias for to('cuda') when available; always works on CPU."""
+def test_md17sample_to_all_fields():
+    """MD17Sample.to() should move all fields to the target device."""
     sample = _make_sample()
-    # to('cpu') should always work
     sample_cpu = sample.to(torch.device("cpu"))
     assert sample_cpu.position.device.type == "cpu"
     assert sample_cpu.energy.device.type == "cpu"
     assert sample_cpu.force.device.type == "cpu"
+    assert sample_cpu.atom_type.device.type == "cpu"
+    # Verify values are unchanged
+    assert torch.allclose(sample_cpu.position, sample.position)
+    assert torch.allclose(sample_cpu.energy, sample.energy)
 
 
 def test_md17sample_shapes():
