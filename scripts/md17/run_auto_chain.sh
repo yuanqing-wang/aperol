@@ -40,6 +40,7 @@ WEIGHT_NOISE=""
 N_EPOCHS=""
 POLL_TIMEOUT=9000  # 2.5h — safety net for 200-epoch jobs (~50min expected)
 DRY_RUN=0
+SKIP_EXISTING=0  # if 1, skip experiments that already have a checkpoint.pt
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -50,6 +51,7 @@ while [[ $# -gt 0 ]]; do
     --use-final-ckpt) USE_FINAL_CKPT=1;     shift   ;;
     --use-base)       USE_BASE=1;           shift   ;;
     --weight-noise)   WEIGHT_NOISE="$2";    shift 2 ;;
+    --skip-existing)  SKIP_EXISTING=1;      shift   ;;
     --n-epochs)       N_EPOCHS="$2";        shift 2 ;;
     --poll-timeout)   POLL_TIMEOUT="$2";    shift 2 ;;
     --dry-run|-n)     DRY_RUN=1;            shift   ;;
@@ -84,16 +86,23 @@ for ((i = 1; i <= MAX_NEW; i++)); do
   fi
   echo "=== Creating exp${NEW} (reset from exp${PREV}) ==="
 
-  # Create the new experiment (optionally pin architecture or use final checkpoint)
-  RESET_ARGS=()
-  [[ -n "${USE_RUN}" ]]        && RESET_ARGS+=(--use-run "${USE_RUN}")
-  [[ -n "${USE_FINAL_CKPT}" ]] && RESET_ARGS+=(--use-final-ckpt)
-  [[ -n "${USE_BASE}" ]]       && RESET_ARGS+=(--use-base)
-  [[ -n "${WEIGHT_NOISE}" ]]   && RESET_ARGS+=(--weight-noise "${WEIGHT_NOISE}")
-  [[ -n "${N_EPOCHS}" ]]       && RESET_ARGS+=(--n-epochs "${N_EPOCHS}")
-  [[ "${DRY_RUN}" == "1" ]]   && RESET_ARGS+=(--dry-run)
-  # Use ${RESET_ARGS[@]:+"${RESET_ARGS[@]}"} to safely expand empty arrays in bash 3.x
-  bash "${NEW_RESET}" "${PREV}" "${NEW}" ${RESET_ARGS[@]:+"${RESET_ARGS[@]}"}
+  # If --skip-existing and the experiment already has a checkpoint, skip creation
+  if [[ "${SKIP_EXISTING}" == "1" ]] && \
+     "${SUBMITTER}" run-cmd "${CLUSTER}" \
+       "test -f '${REMOTE_BASE}/${NEW}/checkpoint.pt'" 2>/dev/null; then
+    echo "  exp${NEW} already has a checkpoint — skipping creation (--skip-existing)"
+  else
+    # Create the new experiment (optionally pin architecture or use final checkpoint)
+    RESET_ARGS=()
+    [[ -n "${USE_RUN}" ]]        && RESET_ARGS+=(--use-run "${USE_RUN}")
+    [[ -n "${USE_FINAL_CKPT}" ]] && RESET_ARGS+=(--use-final-ckpt)
+    [[ -n "${USE_BASE}" ]]       && RESET_ARGS+=(--use-base)
+    [[ -n "${WEIGHT_NOISE}" ]]   && RESET_ARGS+=(--weight-noise "${WEIGHT_NOISE}")
+    [[ -n "${N_EPOCHS}" ]]       && RESET_ARGS+=(--n-epochs "${N_EPOCHS}")
+    [[ "${DRY_RUN}" == "1" ]]   && RESET_ARGS+=(--dry-run)
+    # Use ${RESET_ARGS[@]:+"${RESET_ARGS[@]}"} to safely expand empty arrays in bash 3.x
+    bash "${NEW_RESET}" "${PREV}" "${NEW}" ${RESET_ARGS[@]:+"${RESET_ARGS[@]}"}
+  fi
 
   if [[ "${DRY_RUN}" == "1" ]]; then
     echo "(dry run — skipping submission)"
