@@ -132,9 +132,11 @@ submitter run-cmd trillium 'python3 /scratch/yqw/aperol/scripts/md17/eval_checkp
 submitter run-cmd trillium 'python3 /scratch/yqw/aperol/scripts/md17/swa_ensemble.py 8 10 11 12'
 ```
 
-**Read metrics** after each run via SSH:
+**Read metrics** after each run:
 ```bash
-ssh ... 'cat /scratch/yqw/aperol/scripts/md17/experiments/{n}/metrics.jsonl'
+submitter run-cmd trillium 'cat /scratch/yqw/aperol/scripts/md17/experiments/{n}/metrics.jsonl'
+# Or use summarize.sh for a formatted table:
+bash scripts/md17/summarize.sh
 ```
 
 ---
