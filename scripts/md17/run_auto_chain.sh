@@ -3,12 +3,20 @@
 # Creates each new experiment using new_reset_exp.sh, then submits and polls.
 # Stops early if the target is reached.
 #
-# Usage: bash scripts/md17/run_auto_chain.sh <start_exp> [--target <val>] [--max <n>]
-#   start_exp  — start the chain from this experiment (must have a checkpoint)
-#   --target   — stop when val_force < this value (default: 1.0)
-#   --max      — maximum number of new experiments to create (default: 30)
+# Usage: bash scripts/md17/run_auto_chain.sh <start_exp> [options]
+#   start_exp        — start the chain from this experiment (must have a checkpoint)
+#   --target <val>   — stop when val_force < this value (default: 1.0)
+#   --max <n>        — maximum number of new experiments to create (default: 30)
+#   --next <n>       — first new experiment number (default: start_exp+1)
+#   --use-base       — use base run.py template (has new training options)
+#   --weight-noise N — add weight noise at each reset (breaks memorization)
+#   --n-epochs N     — epochs per reset (default: 200)
+#   --poll-timeout N — seconds before poll gives up (default: 9000)
+#   --dry-run/-n     — show what would be done without creating or submitting
 #
-# Example: bash scripts/md17/run_auto_chain.sh 9 --target 1.0 --max 20
+# Examples:
+#   bash scripts/md17/run_auto_chain.sh 18 --next 19 --target 1.0 --max 20
+#   bash scripts/md17/run_auto_chain.sh 18 --next 19 --dry-run --max 5  # preview
 
 set -euo pipefail
 
