@@ -123,8 +123,13 @@ def check_model(
         s_r = MD17Sample(position=pos_r, energy=sample_r.energy, force=sample_r.force, atom_type=sample_r.atom_type)
         e = model(s)
         e_r = model(s_r)
-        force = -torch.autograd.grad(e.sum(), pos, create_graph=False)[0]      # (N, 3)
-        force_r = -torch.autograd.grad(e_r.sum(), pos_r, create_graph=False)[0]  # (N, 3)
+        # allow_unused=True handles models whose energy doesn't depend on position
+        # (e.g. pure node/edge models). If unused, forces are zero — trivially equivariant.
+        _force = torch.autograd.grad(e.sum(), pos, create_graph=False, allow_unused=True)[0]
+        _force_r = torch.autograd.grad(e_r.sum(), pos_r, create_graph=False, allow_unused=True)[0]
+    if _force is None:
+        return  # position not in graph — force equivariance trivially satisfied
+    force, force_r = -_force, -_force_r
     # Positions rotate as x_r = x @ r.T; forces inherit the same transformation.
     _assert_allclose(force_r, force @ r.T, name=f"{name}.force", atol=atol, rtol=rtol)
 
