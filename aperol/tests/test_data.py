@@ -214,3 +214,37 @@ def test_state_detach():
     )
     detached = state.detach()
     assert not detached.node.requires_grad
+
+
+def test_state_replace():
+    """State.replace() should create a new State with only the specified fields changed."""
+    node = torch.randn(3, 4)
+    edge = torch.randn(3, 3, 4)
+    pos = torch.randn(3, 3, 2)
+    vel = torch.randn(3, 3, 2)
+    state = State(node=node, edge=edge, position=pos, velocity=vel)
+
+    new_node = torch.zeros_like(node)
+    state2 = state.replace(node=new_node)
+
+    # Changed field
+    assert torch.allclose(state2.node, new_node)
+    # Unchanged fields should be identical objects
+    assert state2.edge is state.edge
+    assert state2.position is state.position
+    assert state2.velocity is state.velocity
+    # Original unchanged
+    assert torch.allclose(state.node, node)
+
+
+def test_state_is_frozen():
+    """State should be immutable (frozen dataclass)."""
+    state = State(
+        node=torch.randn(3, 4),
+        edge=torch.randn(3, 3, 4),
+        position=torch.randn(3, 3, 2),
+        velocity=torch.randn(3, 3, 2),
+    )
+    import dataclasses
+    with pytest.raises((dataclasses.FrozenInstanceError, AttributeError, TypeError)):
+        state.node = torch.zeros(3, 4)  # type: ignore
