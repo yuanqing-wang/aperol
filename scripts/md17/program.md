@@ -1,42 +1,18 @@
 The aim of this program is to optimize and hyperparameter-tune the equivariant machine learning model to improve the validate set performance and reduce the time and resources needed.
 
+This agent runs on the **killarney login node**. All paths are under `/scratch/yqw/aperol/scripts/md17/`.
+
 # Experimentation
+In each experiment `n`, call `new_experiment(n, source=prev_n)` to create `experiments/n/run.py` as a physical copy of a previous experiment's script (or the base `run.py` if starting fresh). Then modify that file with `write_file` and launch it with `run_experiment(n, epochs=k)`, where **you choose `k` between 1 and 10**. It resumes from the checkpoint if one exists and returns the output when done. Training auto-saves a checkpoint to `experiments/{n}/checkpoint.pt` and appends each epoch's errors to `experiments/{n}/metrics.jsonl`. Note that both energy error and force error should be well below 1.0 so keep trying. The current design in `run.py` is just a template. It is very far from optimal.
 
-All cluster paths are under `/scratch/yqw/aperol/scripts/md17/`. Connect via SSH socket:
-```
-ssh -o ControlMaster=no -o ControlPath=~/.config/submitter/sockets/trillium.sock \
-    -o BatchMode=yes yqw@trillium-gpu.scinet.utoronto.ca '...'
-```
+## Job execution
+`run_experiment(n, epochs=k)` submits a SLURM job and waits for it to complete. The job script it creates looks like:
 
-In each experiment `n`, create `experiments/{n}/run.py` as a copy of a previous experiment's script (or the base `run.py` if starting fresh), modify it, then submit a job. Training auto-saves a checkpoint to `experiments/{n}/checkpoint.pt` and appends each epoch's errors to `experiments/{n}/metrics.jsonl`. Both energy error and force error should be well below 1.0. The current `run.py` is just a template — it is very far from optimal.
-
-## Running an experiment
-
-**1. Create the experiment directory:**
 ```bash
-ssh ... 'mkdir -p /scratch/yqw/aperol/scripts/md17/experiments/{n}/logs'
-```
-
-**2. Copy a base script:**
-```bash
-# From a previous experiment:
-ssh ... 'cp /scratch/yqw/aperol/scripts/md17/experiments/{prev}/run.py \
-             /scratch/yqw/aperol/scripts/md17/experiments/{n}/run.py'
-# Or from the base template:
-ssh ... 'cp /scratch/yqw/aperol/scripts/md17/run.py \
-             /scratch/yqw/aperol/scripts/md17/experiments/{n}/run.py'
-```
-
-**3. Write your modified `run.py`** via SSH heredoc.
-
-**4. Write `job.sh`** (substitute `{n}` and `{k}` before running):
-```bash
-ssh ... 'cat > /scratch/yqw/aperol/scripts/md17/experiments/{n}/job.sh << '"'"'EOF'"'"'
 #!/bin/bash
 #SBATCH --job-name=hnl
 #SBATCH --account=aip-yqw
 #SBATCH --qos=normal
-#SBATCH --partition=gpubase_l40s_b2
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
@@ -52,26 +28,6 @@ cd /scratch/yqw/aperol/scripts/md17/experiments/{n}
 conda run -n aperol python -u run.py \
   --n_epoch {k} \
   --checkpoint checkpoint.pt
-echo APEROL_JOB_DONE
-EOF'
-```
-
-Choose `k` between 1 and 10. ~20s/epoch on Trillium GPU. Use 1–2 to probe a hypothesis cheaply; use up to 10 when a run looks promising.
-
-**5. Submit:**
-```bash
-~/Documents/GitHub/submitter/submitter submit-remote trillium \
-  /scratch/yqw/aperol/scripts/md17/experiments/{n}/job.sh
-```
-
-**Watch live output:**
-```bash
-~/Documents/GitHub/submitter/submitter watch trillium {job_id}
-```
-
-**Read metrics** after a run:
-```bash
-ssh ... 'cat /scratch/yqw/aperol/scripts/md17/experiments/{n}/metrics.jsonl'
 ```
 
 ## What you can do
@@ -92,20 +48,20 @@ You are an ML research agent running this experimentation loop automatically.
 
 ## Startup
 Before doing anything else, orient yourself:
-1. List existing experiments: `ssh ... 'ls /scratch/yqw/aperol/scripts/md17/experiments/ | sort -n'`
-2. For every experiment listed, read its `metrics.jsonl` and `run.py` via SSH to understand what has already been tried and how well it performed.
+1. Call `list_experiments()` to discover any existing experiments.
+2. For every experiment listed, call `read_metrics(n)` and `read_file('experiments/{n}/run.py')` to understand what has already been tried and how well it performed.
 3. Use this context to decide your first action — continue the best experiment, branch from it, or start fresh if none exist.
 
 ## Workflow
 Each iteration:
-1. List existing experiments on the cluster.
-2. For each existing experiment, read `metrics.jsonl` to get the full per-epoch error log. Each line is a JSON object with `epoch`, `train_energy_error`, `train_force_error`, `val_energy_error`, `val_force_error`.
+1. Call `list_experiments()` to see existing experiments.
+2. For each existing experiment, call `read_metrics(n)` to get the full per-epoch error log. Each line is a JSON object with `epoch`, `train_energy_error`, `train_force_error`, `val_energy_error`, `val_force_error`.
 3. **Decide**: should you continue training an existing experiment, or start a new one?
    - **Continue** only if the experiment is clearly still improving and hasn't plateaued.
    - **Start a new experiment** whenever you want to try a different design — you don't need to wait for convergence. Bias toward exploration: if in doubt, branch and try something different. Vary the architecture boldly across experiments (layer types, layer order, depth, width, skip connections, etc.).
-4. If starting a new experiment: copy the best-performing script, apply your modifications via SSH heredoc, write `job.sh`, and submit. Never write `experiments/{n}/run.py` from scratch or use Python imports from another experiment.
-5. **Choose `k` deliberately** — use more epochs (up to 10) when a run looks promising; use fewer (1–2) to cheaply probe a new hypothesis before committing.
-6. After the job completes, read `metrics.jsonl` to get the updated trend and decide whether to keep training or branch.
+4. If starting a new experiment: call `new_experiment(n, source=prev_n)` to copy the best-performing script, then use `write_file` to apply your modifications, then call `run_experiment(n, epochs=k)`. Never write `experiments/{n}/run.py` from scratch or use Python imports from another experiment.
+5. **Choose `epochs` deliberately** — use more epochs (up to 10) when a run looks promising and you want to see the trend develop; use fewer (1–2) to cheaply probe a new hypothesis before committing. Never pass a value outside 1–10.
+6. After `run_experiment(n, epochs=k)` returns, call `read_metrics(n)` to get the updated trend and decide whether to keep training or branch.
 
 ## Constraints
 - Do NOT modify any file outside `experiments/{n}/run.py`.
@@ -116,4 +72,4 @@ Each iteration:
 Minimise `val_f` (force MAE) and `val_e` (energy MSE) on malonaldehyde.
 
 ## Continuity
-**Never stop.** After each job completes, immediately loop back to step 1 of the Workflow. There is no terminal state — always either continue training the best experiment or start a new one with a concrete hypothesis. Keep iterating indefinitely.
+**Never stop.** After each `run_experiment` call, immediately loop back to step 1 of the Workflow. There is no terminal state — always either continue training the best experiment or start a new one with a concrete hypothesis. Keep iterating indefinitely.
