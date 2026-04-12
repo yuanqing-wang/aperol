@@ -48,11 +48,14 @@ EOF'
 ```bash
 ssh ... 'cat > /scratch/yqw/aperol/scripts/md17/experiments/{n}/job.sh << '"'"'EOF'"'"'
 #!/bin/bash
-#SBATCH -J aperol_exp{n}
-#SBATCH --partition=debug
-#SBATCH --gpus-per-node=1
-#SBATCH --time=2:00:00
-#SBATCH -n 1
+#SBATCH --job-name=hnl
+#SBATCH --account=aip-yqw
+#SBATCH --qos=normal
+#SBATCH --partition=gpubase_l40s_b2
+#SBATCH --gres=gpu:1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=32G
+#SBATCH --time=12:00:00
 #SBATCH -o /scratch/yqw/aperol/scripts/md17/experiments/{n}/job_%j.log
 #SBATCH -e /scratch/yqw/aperol/scripts/md17/experiments/{n}/job_%j.err
 
@@ -192,55 +195,3 @@ After each run completes:
 5. **Automate a chain**: `bash scripts/md17/run_chain.sh {n} {n+1} ...` submits sequentially using `submitter poll`.
 6. Abandon poorly-performing experiments quickly (a few epochs is enough to judge).
 7. Immediately loop back to step 1. **Never stop.**
-
----
-
-## Cluster (SLURM on Trillium/SciNet via submitter)
-
-All cluster interaction goes through SSH master sockets managed by the `submitter` tool. The socket must already be open (run `submitter connect` interactively first if needed).
-
-```
-Submitter:   ~/Documents/GitHub/submitter/submitter
-Config:      ~/Documents/GitHub/submitter/clusters.conf
-Sockets:     ~/.config/submitter/sockets/
-Cluster:     trillium  →  yqw@trillium-gpu.scinet.utoronto.ca
-Remote dir:  /scratch/yqw/aperol
-Conda env:   aperol
-```
-
-**SSH shorthand** (reuse existing master socket, no MFA):
-```bash
-ssh -o ControlMaster=no \
-    -o ControlPath=~/.config/submitter/sockets/trillium.sock \
-    -o BatchMode=yes \
-    yqw@trillium-gpu.scinet.utoronto.ca \
-    '<remote command>'
-```
-
-**Submitter commands:**
-```bash
-submitter status                                      # Check which clusters are connected
-submitter connect                                     # Open master connections (interactive, MFA required)
-submitter running [trillium]                          # Show currently running/pending jobs (fast, via squeue)
-submitter submit-remote trillium <remote-path>        # Submit a job script already on the cluster
-submitter poll trillium <jobid>                       # Wait for job to finish; exit 0 if COMPLETED
-submitter cancel trillium <jobid>                     # Cancel a running/pending job
-submitter watch trillium <jobid>                      # Tail job stdout live by job ID (Ctrl+C to stop)
-submitter tail-log trillium <remote-exp-dir>          # Tail most recent log in experiment dir (no job ID needed)
-submitter run-cmd trillium '<command>'                # Run any command on the cluster (no raw SSH needed)
-submitter fetch trillium <jobid>                      # Copy job log files to current directory
-submitter jobs trillium                               # Show recent jobs history (last 24h, via sacct)
-```
-
-Note: `submitter chain trillium job1.sh job2.sh ...` uses SLURM job dependencies — **does NOT work on the debug partition** (which prohibits pending jobs). Use `submitter poll` + `submit-remote` instead.
-
-**Note on the `debug` partition:** Only one job at a time (no pending jobs allowed — QOS limit). Always wait for the current job to complete before submitting the next. `submitter chain` does NOT work here (it would require a pending slot). Use `submitter poll` + `submit-remote` in a script, or submit manually.
-
-**Note on `conda run` in job.sh:** Use `conda run -n {env}` rather than `conda activate` — the latter requires an interactive shell and will silently fail in SLURM jobs.
-
-**Note on heredoc quoting over SSH:** To write multi-line scripts remotely, wrap the heredoc delimiter in single quotes so the local shell doesn't expand variables:
-```bash
-ssh ... 'cat > remote/path/file.py << '"'"'EOF'"'"'
-content with $variables preserved literally
-EOF'
-```
