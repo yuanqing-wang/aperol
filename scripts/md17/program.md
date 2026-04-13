@@ -1,9 +1,9 @@
 The aim of this program is to optimize and hyperparameter-tune the equivariant machine learning model to improve the validate set performance and reduce the time and resources needed.
 
-This agent runs on the **killarney login node**. All paths are under `/scratch/yqw/aperol/scripts/md17/`.
+This agent runs on the **killarney login node**. Don't run anything directly on the login node. Submit `sbatch` jobs. All paths are under `/scratch/yqw/aperol/scripts/md17/`. The conda environment is called `aperol`. 
 
 # Experimentation
-In each experiment `n`, call `new_experiment(n, source=prev_n)` to create `experiments/n/run.py` as a physical copy of a previous experiment's script (or the base `run.py` if starting fresh). Then modify that file with `write_file` and launch it with `run_experiment(n, epochs=k)`, where **you choose `k` between 1 and 10**. It resumes from the checkpoint if one exists and returns the output when done. Training auto-saves a checkpoint to `experiments/{n}/checkpoint.pt` and appends each epoch's errors to `experiments/{n}/metrics.jsonl`. Note that both energy error and force error should be well below 1.0 so keep trying. The current design in `run.py` is just a template. It is very far from optimal.
+In each experiment `n` (which is used to track the iteration), call `new_experiment(n, source=prev_n)` to create `experiments/n/run.py` as a physical copy of a previous experiment's script (or the base `run.py` if starting fresh). Then modify that file with `write_file` and launch it with `run_experiment(n, epochs=k)`, where **you choose `k` between 1 and 10**. It resumes from the checkpoint if one exists and returns the output when done. Training auto-saves a checkpoint to `experiments/{n}/checkpoint.pt` and appends each epoch's errors to `experiments/{n}/metrics.jsonl`. Note that both energy error and force error should be well below 1.0 so keep trying. The current design in `run.py` is just a template. It is very far from optimal.
 
 ## Job execution
 `run_experiment(n, epochs=k)` submits a SLURM job and waits for it to complete. The job script it creates looks like:
